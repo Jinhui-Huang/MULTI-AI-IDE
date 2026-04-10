@@ -1,0 +1,14 @@
+{
+  "name": "telegram-claude-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram <-> Claude Code CLI bridge",
+  "main": "bridge.js",
+  "scripts": {
+    "start": "node bridge.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}
