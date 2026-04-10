@@ -42,20 +42,9 @@ const audit = (chatId, kind, text) => {
 
 const isAllowed = (chatId) => ALLOWED.includes(String(chatId));
 
-const sendLong = async (chatId, text) => {
-  const MAX = 3500;
-  if (!text) text = '(empty)';
-  for (let i = 0; i < text.length; i += MAX) {
-    const chunk = text.slice(i, i + MAX);
-    await bot.sendMessage(chatId, '```\n' + chunk + '\n```', { parse_mode: 'Markdown' }).catch(async () => {
-      await bot.sendMessage(chatId, chunk);
-    });
-  }
-};
-
-const runClaude = (prompt, session) =>
+const runClaude = (prompt, session, onProgress) =>
   new Promise((resolve) => {
-    const args = ['-p', prompt, '--output-format', 'json'];
+    const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
     if (SKIP_PERMISSIONS) {
       args.push('--dangerously-skip-permissions');
     } else {
@@ -64,18 +53,39 @@ const runClaude = (prompt, session) =>
     if (session.model) args.push('--model', session.model);
     if (session.sessionId) args.push('--resume', session.sessionId);
     const child = spawn(CLAUDE_BIN, args, { cwd: session.cwd, shell: true });
-    let stdout = '';
+    let buffer = '';
+    let latestAssistant = '';
+    let finalResult = '';
     let stderr = '';
-    child.stdout.on('data', (d) => (stdout += d.toString()));
+    child.stdout.on('data', (d) => {
+      buffer += d.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const evt = JSON.parse(trimmed);
+          if (evt.session_id) session.sessionId = evt.session_id;
+          if (evt.type === 'assistant' && evt.message && evt.message.content) {
+            let text = '';
+            for (const c of evt.message.content) {
+              if (c.type === 'text') text += c.text;
+              else if (c.type === 'tool_use') text += `\n[tool: ${c.name}]`;
+            }
+            if (text) {
+              latestAssistant = text;
+              if (onProgress) onProgress(text);
+            }
+          } else if (evt.type === 'result') {
+            finalResult = evt.result || latestAssistant;
+          }
+        } catch (_) {}
+      }
+    });
     child.stderr.on('data', (d) => (stderr += d.toString()));
     child.on('close', (code) => {
-      let result = stdout;
-      try {
-        const parsed = JSON.parse(stdout);
-        if (parsed.session_id) session.sessionId = parsed.session_id;
-        result = parsed.result || parsed.response || stdout;
-      } catch (_) {}
-      resolve({ code, stdout: result, stderr });
+      resolve({ code, stdout: finalResult || latestAssistant, stderr });
     });
     child.on('error', (err) => resolve({ code: -1, stdout: '', stderr: err.message }));
   });
@@ -145,13 +155,38 @@ bot.on('message', async (msg) => {
 
   if (session.busy) return bot.sendMessage(chatId, 'busy, wait for current task');
   session.busy = true;
-  const progress = await bot.sendMessage(chatId, 'running...');
+  const progress = await bot.sendMessage(chatId, '📥 收到，思考中...');
+  let lastEdit = 0;
+  let lastShown = '';
+  const updateProgress = (chunk) => {
+    const now = Date.now();
+    if (now - lastEdit < 1500) return;
+    if (chunk === lastShown) return;
+    lastEdit = now;
+    lastShown = chunk;
+    const display = chunk.length > 3500 ? chunk.slice(0, 3500) + '\n...' : chunk;
+    bot
+      .editMessageText('💭 ' + display, { chat_id: chatId, message_id: progress.message_id })
+      .catch(() => {});
+  };
   try {
-    const { code, stdout, stderr } = await runClaude(text, session);
+    const { code, stdout, stderr } = await runClaude(text, session, updateProgress);
     const out = stdout || stderr || `(exit ${code})`;
     audit(chatId, 'OUT', out);
-    await bot.deleteMessage(chatId, progress.message_id).catch(() => {});
-    await sendLong(chatId, out);
+    const MAX = 3500;
+    const firstChunk = out.slice(0, MAX);
+    const editOk = await bot
+      .editMessageText(firstChunk, { chat_id: chatId, message_id: progress.message_id })
+      .then(() => true)
+      .catch(() => false);
+    if (!editOk) {
+      await bot.sendMessage(chatId, firstChunk).catch(() => {});
+    }
+    if (out.length > MAX) {
+      for (let i = MAX; i < out.length; i += MAX) {
+        await bot.sendMessage(chatId, out.slice(i, i + MAX)).catch(() => {});
+      }
+    }
   } catch (err) {
     await bot.sendMessage(chatId, 'error: ' + err.message);
   } finally {
