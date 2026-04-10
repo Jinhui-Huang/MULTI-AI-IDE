@@ -1,0 +1,54 @@
+{
+  "name": "ai-agent-ide",
+  "displayName": "AI Agent IDE",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.90.0" },
+  "activationEvents": ["onView:aiAgent.chat"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "aiAgent.chat",
+          "name": "AI Agent"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "aiAgent.openChat",  "title": "AI: Open Chat" },
+      { "command": "aiAgent.clearChat", "title": "AI: Clear Chat" }
+    ],
+    "configuration": {
+      "title": "AI Agent IDE",
+      "properties": {
+        "aiAgent.provider": {
+          "type": "string",
+          "enum": ["anthropic", "openai", "ollama"],
+          "default": "anthropic"
+        },
+        "aiAgent.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-6"
+        },
+        "aiAgent.baseUrl": {
+          "type": "string",
+          "default": ""
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build":       "node scripts/build.mjs",
+    "watch":       "tsc -watch -p tsconfig.json",
+    "package":     "vsce package",
+    "lint":        "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "@types/vscode":    "^1.90.0",
+    "@types/node":      "^20.0.0",
+    "typescript":       "^5.4.0",
+    "@vscode/vsce":     "^3.0.0",
+    "esbuild":          "^0.21.0"
+  }
+}
