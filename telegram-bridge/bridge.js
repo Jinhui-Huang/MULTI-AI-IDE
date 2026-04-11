@@ -52,7 +52,8 @@ const runClaude = (prompt, session, onProgress) =>
     }
     if (session.model) args.push('--model', session.model);
     if (session.sessionId) args.push('--resume', session.sessionId);
-    const child = spawn(CLAUDE_BIN, args, { cwd: session.cwd, shell: true });
+    const quotedBin = CLAUDE_BIN.includes(' ') ? `"${CLAUDE_BIN}"` : CLAUDE_BIN;
+    const child = spawn(quotedBin, args, { cwd: session.cwd, shell: true });
     let buffer = '';
     let latestAssistant = '';
     let finalResult = '';
