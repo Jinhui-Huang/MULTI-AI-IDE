@@ -26,14 +26,16 @@
     },
     "commands": [
       { "command": "aiAgent.openChat",  "title": "AI: Open Chat" },
-      { "command": "aiAgent.clearChat", "title": "AI: Clear Chat" }
+      { "command": "aiAgent.clearChat", "title": "AI: Clear Chat" },
+      { "command": "aiAgent.setApiKey", "title": "AI: Set API Key" },
+      { "command": "aiAgent.openSettings", "title": "AI: Open AI Settings" }
     ],
     "configuration": {
       "title": "AI Agent IDE",
       "properties": {
         "aiAgent.provider": {
           "type": "string",
-          "enum": ["anthropic", "openai", "ollama"],
+          "enum": ["anthropic", "openai", "ollama", "gemini"],
           "default": "anthropic"
         },
         "aiAgent.model": {

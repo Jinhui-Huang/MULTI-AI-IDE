@@ -9,17 +9,19 @@ const log = createLogger('extension');
 export function activate(context: vscode.ExtensionContext) {
   log.info('AI Agent IDE activating');
 
-  // 初始化配置管理器
   const configManager = ConfigManager.initialize(context);
   const config = configManager.getConfig();
   log.info(`Config loaded: provider=${config.provider}, model=${config.model}`);
+
+  configManager.migrateOldApiKey().catch((err) => {
+    log.error(`Migration failed: ${err}`);
+  });
 
   const chatProvider = new ChatViewProvider(context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('aiAgent.chat', chatProvider)
   );
 
-  // 监听配置变化
   context.subscriptions.push(
     configManager.onConfigChange((newConfig) => {
       log.info(`Config changed: provider=${newConfig.provider}, model=${newConfig.model}`);

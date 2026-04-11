@@ -1,2 +1,2 @@
-// AI gateway module placeholder
-export const version = '0.1.0';
+export { AIGateway } from './gateway';
+export type { AIProvider, ChatRequest, ChatMessage, StreamChunk, ContentPart, TextContent, ImageContent } from './types';

@@ -44,7 +44,7 @@ const isAllowed = (chatId) => ALLOWED.includes(String(chatId));
 
 const runClaude = (prompt, session, onProgress) =>
   new Promise((resolve) => {
-    const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose'];
+    const args = ['--output-format', 'stream-json', '--verbose'];
     if (SKIP_PERMISSIONS) {
       args.push('--dangerously-skip-permissions');
     } else {
@@ -52,8 +52,17 @@ const runClaude = (prompt, session, onProgress) =>
     }
     if (session.model) args.push('--model', session.model);
     if (session.sessionId) args.push('--resume', session.sessionId);
-    const quotedBin = CLAUDE_BIN.includes(' ') ? `"${CLAUDE_BIN}"` : CLAUDE_BIN;
-    const child = spawn(quotedBin, args, { cwd: session.cwd, shell: true });
+    // Windows上如果包含空格需要特殊处理
+    let child;
+    if (process.platform === 'win32' && CLAUDE_BIN.includes(' ')) {
+      // Windows: 转换为正向斜杠并用引号包围
+      const quotedPath = `"${CLAUDE_BIN.replace(/\\/g, '/')}"`;
+      const cmd = [quotedPath, ...args].join(' ');
+      child = spawn(cmd, [], { cwd: session.cwd, shell: true });
+    } else {
+      // Unix或不含空格的Windows路径
+      child = spawn(CLAUDE_BIN, args, { cwd: session.cwd });
+    }
     let buffer = '';
     let latestAssistant = '';
     let finalResult = '';
@@ -89,6 +98,8 @@ const runClaude = (prompt, session, onProgress) =>
       resolve({ code, stdout: finalResult || latestAssistant, stderr });
     });
     child.on('error', (err) => resolve({ code: -1, stdout: '', stderr: err.message }));
+    child.stdin.write(prompt);
+    child.stdin.end();
   });
 
 bot.on('message', async (msg) => {
