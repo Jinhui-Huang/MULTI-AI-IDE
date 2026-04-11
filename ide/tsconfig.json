@@ -8,7 +8,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist", "webview"]
 }

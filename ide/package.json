@@ -6,12 +6,21 @@
   "activationEvents": ["onView:aiAgent.chat"],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ai-agent-sidebar",
+          "title": "AI Agent",
+          "icon": "$(hubot)"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "ai-agent-sidebar": [
         {
           "type": "webview",
           "id": "aiAgent.chat",
-          "name": "AI Agent"
+          "name": "AI Agent Chat"
         }
       ]
     },
@@ -40,7 +49,7 @@
   },
   "scripts": {
     "build":       "node scripts/build.mjs",
-    "watch":       "tsc -watch -p tsconfig.json",
+    "watch":       "node scripts/build.mjs --watch",
     "package":     "vsce package",
     "lint":        "eslint src --ext .ts"
   },

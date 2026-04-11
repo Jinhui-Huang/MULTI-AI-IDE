@@ -10,14 +10,18 @@ export default defineConfig({
       output: {
         entryFileNames: 'main.js',
         chunkFileNames: '[name].js',
-        assetFileNames: (assetInfo) => {
-          const fname = typeof assetInfo.name === 'string' ? assetInfo.name : '';
-          return fname.endsWith('.css') ? 'main.css' : '[name].[ext]';
-        },
+        assetFileNames: 'main.[ext]',
       },
     },
   },
   server: {
     port: 5173,
+    host: 'localhost',
+    strictPort: false,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+    },
   },
 });

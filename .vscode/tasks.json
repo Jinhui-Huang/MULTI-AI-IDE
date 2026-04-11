@@ -16,6 +16,67 @@
         "panel": "shared"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "dev-webview",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["-C", "ide/webview", "dev"],
+      "windows": {
+        "command": "pnpm",
+        "args": ["-C", "ide/webview", "dev"]
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".*",
+          "line": 1,
+          "column": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*VITE.*ready in.*",
+          "endsPattern": ".*"
+        }
+      }
+    },
+    {
+      "label": "build-extension-watch",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["-C", "ide", "watch"],
+      "windows": {
+        "command": "pnpm",
+        "args": ["-C", "ide", "watch"]
+      },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": ".*",
+          "line": 1,
+          "column": 1,
+          "message": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*watching.*",
+          "endsPattern": ".*"
+        }
+      }
+    },
+    {
+      "label": "dev-extension-with-hmr",
+      "dependsOn": ["dev-webview", "build-extension-watch"],
+      "problemMatcher": []
     }
   ]
 }

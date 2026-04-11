@@ -1,13 +1,18 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { ExtToWebMsg, WebToExtMsg } from '../types/protocol';
 import { createLogger } from '../core/logger';
+import { ConfigManager } from '../core/config';
 
 const log = createLogger('chatViewProvider');
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
+  private configManager: ConfigManager;
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    this.configManager = ConfigManager.getInstance();
+  }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
     this.view = webviewView;
@@ -15,7 +20,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist'),
+        vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview'),
       ],
     };
 
@@ -33,10 +38,21 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private handleMessage(msg: WebToExtMsg) {
     switch (msg.type) {
       case 'ready':
+        const config = this.configManager.getConfig();
         this.postMessage({
           type: 'init',
-          payload: { theme: vscode.window.activeColorTheme.kind === 1 ? 'light' : 'dark' },
+          payload: {
+            theme: vscode.window.activeColorTheme.kind === 1 ? 'light' : 'dark',
+            config: {
+              provider: config.provider,
+              model: config.model,
+            },
+          },
         });
+        break;
+      case 'ping':
+        log.info('Received ping from WebView');
+        this.postMessage({ type: 'pong' });
         break;
       case 'chat/send':
         log.info(`User: ${msg.payload.text}`);
@@ -48,12 +64,38 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtml(webview: vscode.Webview): string {
-    const distUri = vscode.Uri.joinPath(this.context.extensionUri, 'webview', 'dist');
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'main.js'));
-    const styleUri  = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'main.css'));
+    const isDev = process.env.VITE_DEV === 'true';
     const nonce = getNonce();
 
-    return /* html */ `<!DOCTYPE html>
+    if (isDev) {
+      // 开发模式：连接本地 Vite dev server
+      const cspSource = webview.cspSource;
+      return /* html */ `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none';
+             style-src ${cspSource} 'unsafe-inline';
+             script-src 'nonce-${nonce}' http://localhost:5173 ws://localhost:5173 'unsafe-inline';" />
+</head>
+<body>
+  <div id="root"></div>
+  <script nonce="${nonce}" src="http://localhost:5173/@vite/client"></script>
+  <script type="module" nonce="${nonce}" src="http://localhost:5173/src/main.tsx"></script>
+</body>
+</html>`;
+    } else {
+      // 生产模式：加载编译产物
+      const distUri = vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview');
+      const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'main.js'));
+      const cssPath = vscode.Uri.joinPath(distUri, 'main.css');
+      const hasCss = fs.existsSync(cssPath.fsPath);
+      const styleTag = hasCss
+        ? `<link rel="stylesheet" href="${webview.asWebviewUri(cssPath)}" />`
+        : '';
+
+      return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -61,13 +103,14 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     content="default-src 'none';
              style-src ${webview.cspSource} 'unsafe-inline';
              script-src 'nonce-${nonce}';" />
-  <link rel="stylesheet" href="${styleUri}" />
+  ${styleTag}
 </head>
 <body>
   <div id="root"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
+    }
   }
 }
 
