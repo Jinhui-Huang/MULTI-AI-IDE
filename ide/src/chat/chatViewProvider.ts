@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import { ExtToWebMsg, WebToExtMsg } from '../types/protocol';
 import { createLogger } from '../core/logger';
 
