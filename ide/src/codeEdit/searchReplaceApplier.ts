@@ -123,33 +123,110 @@ export class SearchReplaceApplier {
 
   /**
    * 应用单个块到内容
+   * 支持多层次模糊匹配，确保高成功率
    */
   private applyBlock(content: string, block: SearchReplaceBlock): { success: boolean; newContent?: string; error?: string } {
     log.debug(`[SR-APPLY] Applying block ${block.index}`);
     log.debug(`[SR-APPLY]   Search: ${block.search.length} chars`);
     log.debug(`[SR-APPLY]   Replace: ${block.replace.length} chars`);
 
-    // 1. 检查搜索文本是否存在
-    const searchIndex = content.indexOf(block.search);
+    // 方法 1: 精确匹配
+    let searchIndex = content.indexOf(block.search);
+    let matchedSearch = block.search;
 
     if (searchIndex === -1) {
-      const error = `SEARCH block not found in file`;
+      log.debug(`[SR-APPLY] Exact match failed, trying fuzzy match...`);
+
+      // 方法 2: Trim 模糊匹配（忽略首尾空格）
+      const trimmedSearch = block.search.trim();
+      const lines = content.split('\n');
+      let foundLineIndex = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === trimmedSearch) {
+          foundLineIndex = i;
+          break;
+        }
+      }
+
+      if (foundLineIndex !== -1) {
+        // 找到了匹配的行，重构完整的 SEARCH 块（保持原文件的缩进）
+        const searchLines = block.search.split('\n');
+        const contentLines = lines.slice(foundLineIndex, foundLineIndex + searchLines.length);
+
+        if (contentLines.length === searchLines.length) {
+          // 验证所有行都匹配（trim 后）
+          const allMatch = contentLines.every((line, idx) => line.trim() === searchLines[idx].trim());
+
+          if (allMatch) {
+            matchedSearch = contentLines.join('\n');
+            searchIndex = content.indexOf(matchedSearch);
+            log.debug(`[SR-APPLY] Fuzzy match found at line ${foundLineIndex + 1}`);
+          }
+        }
+      }
+    }
+
+    if (searchIndex === -1) {
+      log.debug(`[SR-APPLY] Fuzzy match also failed, trying normalized match...`);
+
+      // 方法 3: 归一化匹配（去掉所有空格，只对比内容）
+      const normalizeStr = (str: string) => str.replace(/\s+/g, '');
+      const normalizedSearch = normalizeStr(block.search);
+      const normalizedContent = normalizeStr(content);
+
+      const normalizedIndex = normalizedContent.indexOf(normalizedSearch);
+      if (normalizedIndex !== -1) {
+        // 反向映射到原始内容中的起始位置
+        let charCount = 0;
+        let originalIndex = 0;
+
+        while (charCount < normalizedIndex && originalIndex < content.length) {
+          if (!/\s/.test(content[originalIndex])) {
+            charCount++;
+          }
+          originalIndex++;
+        }
+
+        // 计算需要匹配多少个非空格字符
+        const targetChars = normalizedSearch.length;
+        let matchedChars = 0;
+        let endIndex = originalIndex;
+
+        while (matchedChars < targetChars && endIndex < content.length) {
+          if (!/\s/.test(content[endIndex])) {
+            matchedChars++;
+          }
+          endIndex++;
+        }
+
+        if (matchedChars === targetChars) {
+          matchedSearch = content.substring(originalIndex, endIndex);
+          searchIndex = originalIndex;
+          log.debug(`[SR-APPLY] Normalized match found at position ${searchIndex}`);
+        }
+      }
+    }
+
+    if (searchIndex === -1) {
+      const error = `SEARCH block not found in file (tried: exact, fuzzy, normalized)`;
       log.warn(`[SR-APPLY] ✗ ${error}`);
+      log.warn(`[SR-APPLY]   Search block (first 100 chars): ${block.search.substring(0, 100)}`);
       return {
         success: false,
         error,
       };
     }
 
-    // 2. 检查是否有多个匹配（歧义）
-    const matchCount = this.countMatches(content, block.search);
+    // 检查是否有多个匹配（歧义）
+    const matchCount = this.countMatches(content, matchedSearch);
     if (matchCount > 1) {
-      log.warn(`[SR-APPLY] ✗ Block ${block.index}: Found ${matchCount} matches (ambiguous), using first match`);
+      log.warn(`[SR-APPLY] ⚠ Block ${block.index}: Found ${matchCount} matches (ambiguous), using first match`);
     }
 
-    // 3. 执行替换
+    // 执行替换
     try {
-      const newContent = content.replace(block.search, block.replace);
+      const newContent = content.replace(matchedSearch, block.replace);
 
       // 验证替换确实发生了
       if (newContent === content) {
@@ -159,7 +236,7 @@ export class SearchReplaceApplier {
         };
       }
 
-      log.debug(`[SR-APPLY] ✓ Block ${block.index}: Replaced ${block.search.length} chars with ${block.replace.length} chars`);
+      log.info(`[SR-APPLY] ✓ Block ${block.index}: Replaced ${matchedSearch.length} chars with ${block.replace.length} chars`);
 
       return {
         success: true,

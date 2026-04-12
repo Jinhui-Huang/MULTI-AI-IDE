@@ -115,7 +115,7 @@ export class CodeEditAgent {
       log.info(`🤖 Calling LLM (${req.provider}/${req.model})...`);
       let llmResponse: string;
       try {
-        llmResponse = await this.callLLM(systemPrompt, userPrompt);
+        llmResponse = await this.callLLM(systemPrompt, userPrompt, req.provider);
         log.info(`   ✓ Received response (${llmResponse.length} chars)`);
 
         if (!llmResponse || llmResponse.length === 0) {
@@ -295,31 +295,84 @@ export class CodeEditAgent {
   /**
    * 调用 LLM 获取响应
    * 使用 ChatController 的流式能力
+   * 添加超时保护防止无限等待
    */
-  private async callLLM(systemPrompt: string, userPrompt: string): Promise<string> {
+  private async callLLM(systemPrompt: string, userPrompt: string, provider: string): Promise<string> {
     let fullResponse = '';
+    let streamComplete = false;
+    let streamError: string | null = null;
 
     // 在用户提示词前加上系统提示词
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
     log.debug(`[LLM] System prompt: ${systemPrompt.substring(0, 100)}...`);
     log.debug(`[LLM] User prompt: ${userPrompt.substring(0, 100)}...`);
+    log.info(`[LLM] Starting stream with prompt length: ${fullPrompt.length}`);
 
-    const stream = this.chatController.sendMessage(fullPrompt);
+    // 设置超时 - Gemini 可能需要更长时间（60 秒）
+    const isGemini = provider?.toLowerCase().includes('gemini') ?? false;
+    const timeoutMs = isGemini ? 60000 : 45000; // Gemini: 60s, 其他: 45s
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'delta') {
-        fullResponse += chunk.content || '';
-        log.debug(`[LLM] Delta: ${chunk.content?.length || 0} chars`);
-      } else if (chunk.type === 'done') {
-        log.debug(`[LLM] Stream done`);
-      } else if (chunk.type === 'error') {
-        log.error(`[LLM] Stream error: ${chunk.error}`);
-        throw new Error(chunk.error || 'LLM stream error');
+    log.info(`[LLM] Using ${timeoutMs}ms timeout for ${provider}`);
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`LLM stream timeout after ${timeoutMs}ms - no response from API (provider: ${provider})`));
+      }, timeoutMs);
+    });
+
+    try {
+      const stream = this.chatController.sendMessage(fullPrompt);
+
+      // 使用 Promise.race 实现超时
+      const streamPromise = (async () => {
+        let chunkCount = 0;
+
+        for await (const chunk of stream) {
+          chunkCount++;
+
+          if (chunk.type === 'delta') {
+            fullResponse += chunk.content || '';
+            log.debug(`[LLM] Delta chunk ${chunkCount}: ${chunk.content?.length || 0} chars`);
+          } else if (chunk.type === 'done') {
+            log.info(`[LLM] Stream done after ${chunkCount} chunks`);
+            streamComplete = true;
+            break;
+          } else if (chunk.type === 'error') {
+            streamError = chunk.error || 'Unknown error';
+            log.error(`[LLM] Stream error: ${streamError}`);
+            throw new Error(streamError);
+          } else {
+            // Log unknown chunk types for debugging
+            log.debug(`[LLM] Received chunk type: ${(chunk as any).type}, keys: ${Object.keys(chunk).join(', ')}`);
+          }
+        }
+
+        if (!streamComplete && chunkCount === 0) {
+          log.warn(`[LLM] No chunks received from stream`);
+        }
+      })();
+
+      // 等待流完成或超时
+      await Promise.race([streamPromise, timeoutPromise]);
+
+      if (streamError) {
+        throw new Error(streamError);
       }
-    }
 
-    log.debug(`[LLM] Total response: ${fullResponse.length} chars`);
-    return fullResponse;
+      // 即使没有 'done' 信号，只要有内容就算成功
+      if (fullResponse && fullResponse.length > 0) {
+        log.info(`[LLM] Total response: ${fullResponse.length} chars, streamComplete: ${streamComplete}`);
+        return fullResponse;
+      }
+
+      // 只有在确实没有任何内容时才报错
+      log.error('[LLM] Received empty response from LLM (chunkCount: 0, fullResponse length: 0)');
+      throw new Error('LLM returned empty response');
+    } catch (error) {
+      const err = error as { message: string };
+      log.error(`[LLM] Stream error: ${err.message}`);
+      throw error;
+    }
   }
 }
