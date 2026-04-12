@@ -125,7 +125,7 @@ export class SearchReplaceApplier {
    * 应用单个块到内容
    * 支持多层次模糊匹配，确保高成功率
    */
-  private applyBlock(content: string, block: SearchReplaceBlock): { success: boolean; newContent?: string; error?: string } {
+  private applyBlock(content: string, block: SearchReplaceBlock): { success: boolean; newContent?: string; error?: string; blockIndex: number; searchText: string; found: boolean } {
     log.debug(`[SR-APPLY] Applying block ${block.index}`);
     log.debug(`[SR-APPLY]   Search: ${block.search.length} chars`);
     log.debug(`[SR-APPLY]   Replace: ${block.replace.length} chars`);
@@ -137,31 +137,37 @@ export class SearchReplaceApplier {
     if (searchIndex === -1) {
       log.debug(`[SR-APPLY] Exact match failed, trying fuzzy match...`);
 
-      // 方法 2: Trim 模糊匹配（忽略首尾空格）
-      const trimmedSearch = block.search.trim();
-      const lines = content.split('\n');
+      // 方法 2: Trim 模糊匹配（逐行对比，忽略首尾空格和缩进）
+      const searchLines = block.search.split('\n');
+      const contentLines = content.split('\n');
       let foundLineIndex = -1;
 
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === trimmedSearch) {
-          foundLineIndex = i;
-          break;
-        }
-      }
-
-      if (foundLineIndex !== -1) {
-        // 找到了匹配的行，重构完整的 SEARCH 块（保持原文件的缩进）
-        const searchLines = block.search.split('\n');
-        const contentLines = lines.slice(foundLineIndex, foundLineIndex + searchLines.length);
-
-        if (contentLines.length === searchLines.length) {
-          // 验证所有行都匹配（trim 后）
-          const allMatch = contentLines.every((line, idx) => line.trim() === searchLines[idx].trim());
+      // 查找第一行匹配的位置
+      const firstSearchLine = searchLines[0].trim();
+      if (firstSearchLine) {
+        for (let i = 0; i <= contentLines.length - searchLines.length; i++) {
+          // 验证从这一行开始的所有行都匹配（trim 后）
+          const allMatch = searchLines.every((searchLine, idx) => {
+            if (i + idx >= contentLines.length) return false;
+            return contentLines[i + idx].trim() === searchLine.trim();
+          });
 
           if (allMatch) {
-            matchedSearch = contentLines.join('\n');
+            foundLineIndex = i;
+            log.debug(`[SR-APPLY] Fuzzy match: first line found at line ${i + 1}, checking multi-line block...`);
+            break;
+          }
+        }
+
+        if (foundLineIndex !== -1) {
+          // 找到了匹配的块，重构完整的 SEARCH 块（保持原文件的缩进）
+          const contentLines = content.split('\n');
+          const matchedLines = contentLines.slice(foundLineIndex, foundLineIndex + searchLines.length);
+
+          if (matchedLines.length === searchLines.length) {
+            matchedSearch = matchedLines.join('\n');
             searchIndex = content.indexOf(matchedSearch);
-            log.debug(`[SR-APPLY] Fuzzy match found at line ${foundLineIndex + 1}`);
+            log.debug(`[SR-APPLY] Fuzzy match found at line ${foundLineIndex + 1}, matched ${matchedLines.length} lines`);
           }
         }
       }
@@ -215,6 +221,9 @@ export class SearchReplaceApplier {
       return {
         success: false,
         error,
+        blockIndex: block.index,
+        searchText: block.search.substring(0, 100),
+        found: false,
       };
     }
 
@@ -233,6 +242,9 @@ export class SearchReplaceApplier {
         return {
           success: false,
           error: 'Replace failed (content unchanged)',
+          blockIndex: block.index,
+          searchText: block.search.substring(0, 100),
+          found: true, // 找到了但替换失败
         };
       }
 
@@ -241,12 +253,18 @@ export class SearchReplaceApplier {
       return {
         success: true,
         newContent,
+        blockIndex: block.index,
+        searchText: block.search.substring(0, 100),
+        found: true,
       };
     } catch (error) {
       const err = error as { message: string };
       return {
         success: false,
         error: `Replace error: ${err.message}`,
+        blockIndex: block.index,
+        searchText: block.search.substring(0, 100),
+        found: true,
       };
     }
   }
