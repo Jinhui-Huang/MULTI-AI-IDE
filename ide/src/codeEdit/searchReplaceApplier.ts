@@ -223,11 +223,13 @@ export class SearchReplaceApplier {
       const searchLines = block.search.split('\n');
       const contentLines = content.split('\n');
       log.warn(`[SR-APPLY]   Search has ${searchLines.length} lines, file has ${contentLines.length} lines`);
-      log.warn(`[SR-APPLY]   First search line: "${searchLines[0].substring(0, 50)}"`);
-      log.warn(`[SR-APPLY]   First file line: "${contentLines[0].substring(0, 50)}"`);
+      log.warn(`[SR-APPLY]   First search line: "${searchLines[0]}"`);
+      log.warn(`[SR-APPLY]   First file line: "${contentLines[0]}"`);
 
       // 显示搜索块的完整内容（用于调试）
-      log.warn(`[SR-APPLY]   Full SEARCH block:\n${block.search.substring(0, 300)}`);
+      log.warn(`[SR-APPLY]   ===== FULL SEARCH BLOCK START =====`);
+      log.warn(block.search);
+      log.warn(`[SR-APPLY]   ===== FULL SEARCH BLOCK END =====`);
 
       return {
         success: false,
