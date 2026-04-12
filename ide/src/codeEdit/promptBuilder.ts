@@ -59,36 +59,61 @@ export class CodeEditPromptBuilder {
   private static buildClaudeSystemPrompt(): string {
     return `You are a professional software engineer assistant specializing in code modifications.
 
-Your task is to analyze code and generate modifications in SEARCH/REPLACE format.
+Your task is to analyze code and generate modifications in SEARCH/REPLACE format ONLY.
 
-## IMPORTANT RULES
+## ⚠️ CRITICAL RULES - READ CAREFULLY
 
-1. **Always return code changes ONLY in SEARCH/REPLACE blocks**
-2. **DO NOT return unified diff format**
-3. **DO NOT return full file content**
-4. **DO NOT return complete code blocks unless they are part of the search/replace**
-5. **If no changes are needed, respond: "No changes needed."**
+1. **ALWAYS return code changes ONLY in SEARCH/REPLACE blocks**
+2. **NEVER return unified diff format (with @@ -1,10 +1,10 @@ markers)**
+3. **NEVER return full file content**
+4. **NEVER return explanations, comments, or text outside the blocks**
+5. **NEVER return code in diff format like:**
+   - Lines starting with "-" and "+"
+   - @@ line numbers @@
+   - "---" and "+++" file markers
+6. **If no changes are needed, respond: "No changes needed."**
 
-## SEARCH/REPLACE Format
+## ✅ CORRECT SEARCH/REPLACE Format
 
-Return modifications EXACTLY in this format:
+Return modifications EXACTLY in this format - NOTHING ELSE:
 
-\`\`\`
 <<<<<<< SEARCH
 <original code to find - must be EXACT>
 =======
 <modified code>
 >>>>>>> REPLACE
+
+## Rules for SEARCH/REPLACE
+
+1. SEARCH section: Must contain EXACT original code (character-for-character match)
+2. REPLACE section: The modified version of that code
+3. Return ONLY minimal code blocks that need changes
+4. Multiple blocks supported for multiple modifications
+5. Each block separated by blank lines
+6. No explanations, no comments, no text outside blocks
+
+## ❌ WRONG Examples (NEVER do this):
+
+❌ WRONG - Unified Diff Format:
+\`\`\`
+@@ -1,5 +1,5 @@
+-public class Game {
++public class Game {
+-    private static void startGame() {
++    private void startGame() {
 \`\`\`
 
-Rules for SEARCH/REPLACE:
-- SEARCH section must contain the EXACT original code (complete and unchanged)
-- REPLACE section is the modified code
-- Return ONLY the minimal code blocks that need modification
-- Multiple blocks are supported for multiple modifications
-- Each block must be separated clearly
+❌ WRONG - Full File:
+\`\`\`
+public class Game {
+    public static void main(String[] args) {
+        // entire file content...
+    }
+}
+\`\`\`
 
-Example:
+## ✅ CORRECT Example:
+
 <<<<<<< SEARCH
 class User {
   name: string;
@@ -110,62 +135,77 @@ class User {
   private static buildGPTSystemPrompt(): string {
     return `You are a professional code modification assistant.
 
-Your role: Generate code modifications in SEARCH/REPLACE format.
+Your ONLY job: Generate code modifications in SEARCH/REPLACE format.
 
-## Key Instructions
+## ⚠️ CRITICAL - READ FIRST
 
-1. Return changes ONLY in SEARCH/REPLACE format
-2. Never return unified diff or full file content
-3. Use proper SEARCH/REPLACE syntax:
+OUTPUT FORMAT REQUIREMENT: You MUST return ONLY SEARCH/REPLACE blocks. Nothing else.
 
+✅ CORRECT FORMAT:
 <<<<<<< SEARCH
 original code
 =======
 modified code
 >>>>>>> REPLACE
 
-4. The SEARCH section must be the exact original code
-5. The REPLACE section is the modified code
-6. If the user's request doesn't require changes, respond: "No changes needed."
-7. For multiple modifications, return multiple blocks
-8. Only output the blocks - no explanations before or after
+❌ FORBIDDEN FORMATS:
+- Do NOT use unified diff (lines with + and -, @@ markers)
+- Do NOT return full file content
+- Do NOT include explanations or comments
+- Do NOT use diff format like "--- file" or "+++ file"
 
-Important: The SEARCH code must match the file exactly, including whitespace and formatting.`;
+## Detailed Rules
+
+1. **SEARCH section**: Must be EXACT original code from the file
+2. **REPLACE section**: Modified version of that code
+3. **Multiple changes**: Return multiple blocks separated by blank lines
+4. **No explanations**: Only output blocks, nothing before/after
+5. **Exact match**: SEARCH must match file exactly (spaces, tabs, newlines)
+6. **Minimal blocks**: Only include code that changes
+
+## If no changes needed
+Respond: "No changes needed."
+
+IMPORTANT: The SEARCH code must match the file exactly, including whitespace and formatting.`;
   }
 
   /**
-   * 开源模型 (Llama/Mistral/Ollama) 的系统提示词 - 更简洁
+   * 开源模型 (Llama/Mistral/Ollama) 的系统提示词
    */
   private static buildOpenSourceSystemPrompt(): string {
     return `你是一个代码修改助手。
 
-任务：生成 SEARCH/REPLACE 格式的代码修改。
+唯一的任务：生成 SEARCH/REPLACE 格式的代码修改。
 
-## 重要规则
+## ⚠️ 必读 - 格式要求
 
-1. 只返回 SEARCH/REPLACE 格式的代码修改
-2. 不要返回 unified diff
-3. 不要返回完整文件内容
-4. 如果不需要修改，回复："不需要修改"
-
-## SEARCH/REPLACE 格式
-
-格式示例：
-
+✅ 正确格式：
 <<<<<<< SEARCH
-原始代码（必须与文件完全匹配）
+原始代码
 =======
 修改后的代码
 >>>>>>> REPLACE
 
-规则：
-- SEARCH 部分必须是文件中的精确原始代码
-- REPLACE 部分是修改后的代码
-- 只返回需要修改的最小代码块
-- 多个修改时返回多个块
-- 每个块要清晰分开
+❌ 禁止的格式：
+- 不要返回 unified diff（有 + - @@ 标记的）
+- 不要返回完整文件内容
+- 不要返回解释或注释
+- 不要返回 "---" 或 "+++" 的 diff 格式
 
-示例：
+## 详细规则
+
+1. SEARCH 部分：必须是文件中的精确原始代码
+2. REPLACE 部分：修改后的代码
+3. 多个修改：返回多个块，块之间用空行分隔
+4. 只输出块：不要在块前后输出解释
+5. 精确匹配：SEARCH 必须与文件完全匹配（包括空格、制表符、换行）
+6. 最小化块：只包含需要改变的代码
+
+## 如果不需要修改
+
+回复："不需要修改"
+
+## 正确示例
 
 <<<<<<< SEARCH
 function getUser() {
@@ -177,7 +217,12 @@ function getUserById(id) {
 }
 >>>>>>> REPLACE
 
-只输出代码块，不要输出解释。`;
+## 错误示例（不要这样做）
+
+❌ 不要返回 diff：
+@@ -1,5 +1,5 @@
+-function getUser() {
++function getUserById(id) {`;
   }
 
   /**
@@ -210,9 +255,22 @@ function getUserById(id) {
     prompt += '## Your Request\n\n';
     prompt += userRequest + '\n\n';
 
-    // 提醒返回 SEARCH/REPLACE 格式
-    prompt += '## Response Format\n\n';
-    prompt += 'Return the modification(s) in SEARCH/REPLACE format only. Do not include any explanation before or after the blocks.';
+    // 强制格式提醒
+    prompt += '## ⚠️ RESPONSE FORMAT (MANDATORY)\n\n';
+    prompt += '**IMPORTANT**: You MUST respond ONLY with SEARCH/REPLACE blocks. No other format.\n\n';
+    prompt += 'Use this format EXACTLY:\n\n';
+    prompt += '<<<<<<< SEARCH\n';
+    prompt += '[original code from file]\n';
+    prompt += '=======\n';
+    prompt += '[modified code]\n';
+    prompt += '>>>>>>> REPLACE\n\n';
+    prompt += '**DO NOT:**\n';
+    prompt += '- Return unified diff format (with @@ -1,5 +1,5 @@ markers)\n';
+    prompt += '- Return full file content\n';
+    prompt += '- Include explanations or comments\n';
+    prompt += '- Use + and - line prefixes\n';
+    prompt += '- Return "---" or "+++" file markers\n\n';
+    prompt += 'Output ONLY the SEARCH/REPLACE blocks, nothing else.';
 
     return prompt;
   }
