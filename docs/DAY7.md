@@ -5,6 +5,40 @@
 **代码变更**: 架构重构 + Chat 集成 (~1,500 行)  
 **编译状态**: ✅ 成功  
 **测试状态**: ✅ 7/7 通过  
+**重构需求文档**: [REBUILD.md](./REBUILD.md)
+
+---
+
+## 📋 重构背景与需求
+
+基于 [REBUILD.md](./REBUILD.md) 需求文档完成本次重构。
+
+**核心问题**: 当前 IDE 聊天系统只能进行文本对话，AI 无法访问项目代码，也无法自动修改代码。
+
+**重构目标**:
+- AI 能读取当前 IDE 打开的项目代码
+- AI 根据用户请求生成代码修改（Unified Diff 格式）
+- IDE 自动解析并应用代码修改
+- 不破坏现有聊天功能，保持系统稳定
+
+**目标流程**:
+```
+User Input → Code Context Collection → Prompt Construction → LLM → Diff Response → Patch Apply → Editor Update
+```
+
+**关键需求实现对照**:
+
+| REBUILD.md 需求 | 实现方式 |
+| --- | --- |
+| 代码上下文读取 | AgentRuntime.readFile() + buildContext() 自动收集当前文件和项目结构 |
+| Prompt 构造 | AgentCore 自动构建包含代码上下文的 Prompt |
+| AI 返回 Unified Diff | AgentCore 解析 ACTION: MODIFY_FILE 指令 |
+| IDE 自动应用修改 | AgentRuntime.writeFile() 直接写入 |
+| 上下文限制 | 优先当前文件，扫描项目文件列表 |
+| 多模型支持 | 支持配置本地模型 API (localhost:11434) |
+| 错误处理 | 自动重试机制（最多 5 次）+ 编译验证 |
+| UI 行为 | Chat 界面显示 diff 结果，支持用户确认 |
+| 兼容性 | 普通聊天走 ChatController，代码请求走 AgentCore |
 
 ---
 
