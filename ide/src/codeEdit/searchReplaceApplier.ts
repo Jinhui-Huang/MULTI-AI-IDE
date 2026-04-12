@@ -218,6 +218,17 @@ export class SearchReplaceApplier {
       const error = `SEARCH block not found in file (tried: exact, fuzzy, normalized)`;
       log.warn(`[SR-APPLY] ✗ ${error}`);
       log.warn(`[SR-APPLY]   Search block (first 100 chars): ${block.search.substring(0, 100)}`);
+
+      // 详细的诊断信息
+      const searchLines = block.search.split('\n');
+      const contentLines = content.split('\n');
+      log.warn(`[SR-APPLY]   Search has ${searchLines.length} lines, file has ${contentLines.length} lines`);
+      log.warn(`[SR-APPLY]   First search line: "${searchLines[0].substring(0, 50)}"`);
+      log.warn(`[SR-APPLY]   First file line: "${contentLines[0].substring(0, 50)}"`);
+
+      // 显示搜索块的完整内容（用于调试）
+      log.warn(`[SR-APPLY]   Full SEARCH block:\n${block.search.substring(0, 300)}`);
+
       return {
         success: false,
         error,
