@@ -5,43 +5,63 @@ import { createLogger } from '../core/logger';
 import { ConfigManager } from '../core/config';
 import { ChatController } from './chatController';
 
-const log = createLogger('chatViewProvider');
+const log = createLogger('rightChatPanel');
 
-export class ChatViewProvider implements vscode.WebviewViewProvider {
-  private view?: vscode.WebviewView;
+export class RightChatPanelProvider {
+  private static currentPanel: RightChatPanelProvider | undefined;
+  private panel: vscode.WebviewPanel;
   private configManager: ConfigManager;
   private chatController = new ChatController();
-  // 左边 panel 独立的配置状态（不受全局影响）
+  // 右边 panel 独立的配置状态（不受全局影响）
   private localProvider: string = '';
   private localModel: string = '';
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  private constructor(panel: vscode.WebviewPanel, private readonly extensionUri: vscode.Uri) {
+    this.panel = panel;
     this.configManager = ConfigManager.getInstance();
     // 初始化本地配置
     const config = this.configManager.getConfig();
     this.localProvider = config.provider;
     this.localModel = config.model;
-  }
+    log.info(`[RIGHT PANEL] Initialized with local config: provider=${this.localProvider}, model=${this.localModel}`);
 
-  resolveWebviewView(webviewView: vscode.WebviewView) {
-    this.view = webviewView;
-
-    webviewView.webview.options = {
+    this.panel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview'),
-      ],
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')],
     };
 
-    webviewView.webview.html = this.getHtml(webviewView.webview);
+    this.panel.webview.html = this.getHtml(this.panel.webview);
 
-    webviewView.webview.onDidReceiveMessage((msg: WebToExtMsg) => {
+    this.panel.webview.onDidReceiveMessage((msg: WebToExtMsg) => {
       this.handleMessage(msg);
+    });
+
+    this.panel.onDidDispose(() => {
+      RightChatPanelProvider.currentPanel = undefined;
     });
   }
 
-  postMessage(msg: ExtToWebMsg) {
-    this.view?.webview.postMessage(msg);
+  static async createOrShow(extensionUri: vscode.Uri) {
+    if (RightChatPanelProvider.currentPanel) {
+      RightChatPanelProvider.currentPanel.panel.reveal(vscode.ViewColumn.Beside);
+      return;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      'aiAgentChatRight',
+      'AI Agent Chat (Right)',
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'dist', 'webview')],
+      }
+    );
+
+    RightChatPanelProvider.currentPanel = new RightChatPanelProvider(panel, extensionUri);
+  }
+
+  private postMessage(msg: ExtToWebMsg) {
+    this.panel.webview.postMessage(msg);
   }
 
   private async handleMessage(msg: WebToExtMsg) {
@@ -60,11 +80,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         break;
       }
       case 'ping':
-        log.info('Received ping from WebView');
+        log.info('Received ping from Right Chat WebView');
         this.postMessage({ type: 'pong' });
         break;
       case 'chat/send':
-        log.info(`User: ${msg.payload.text}${msg.payload.images?.length ? ` [+${msg.payload.images.length} images]` : ''}`);
+        log.info(`User (Right): ${msg.payload.text}${msg.payload.images?.length ? ` [+${msg.payload.images.length} images]` : ''}`);
         this.handleChatSend(msg.payload.text, msg.payload.images);
         break;
       case 'chat/cancel':
@@ -80,7 +100,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           activeProviderId: this.localProvider,
           activeModel: this.localModel,
         };
-        log.info(`[LEFT PANEL] Sending settings/providers: activeProviderId=${this.localProvider} (local), global=${allConfig.activeProviderId}`);
+        log.info(`[RIGHT PANEL] Sending settings/providers: activeProviderId=${this.localProvider} (local), global=${allConfig.activeProviderId}`);
         this.postMessage({ type: 'settings/providers', payload: configForWebView });
         break;
       }
@@ -103,10 +123,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         break;
       }
       case 'settings/setActive': {
-        // 更新左边 panel 的本地配置（不影响全局）
+        // 更新右边 panel 的本地配置（不影响全局）
         this.localProvider = msg.payload.providerId;
         this.localModel = msg.payload.model;
-        log.info(`[LEFT PANEL] Provider changed: ${this.localProvider}/${this.localModel}`);
+        log.info(`[RIGHT PANEL] Provider changed: ${this.localProvider}/${this.localModel}`);
 
         this.postMessage({
           type: 'init',
@@ -139,14 +159,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  clearHistory() {
-    this.chatController.clearHistory();
-    this.postMessage({ type: 'chat/clear' });
-  }
-
   private async handleDetectLocalModels(baseUrl: string) {
     try {
-      // Extract base URL for ollama API (remove /v1 suffix if present)
       const ollamaBaseUrl = baseUrl.replace(/\/v1\/?$/, '');
       const tagsUrl = `${ollamaBaseUrl}/api/tags`;
 
@@ -168,7 +182,6 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
       log.info(`Detected ${models.length} models: ${models.join(', ')}`);
 
-      // Generate provider configs for each model
       const providers = models.map((modelName) => ({
         id: modelName,
         name: modelName,
@@ -240,7 +253,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private async handleChatSend(text: string, images?: import('../types/protocol').ImageAttachment[]) {
     const id = `msg-${Date.now()}`;
     try {
-      // 使用左边 panel 的本地配置发送消息
+      // 使用右边 panel 的本地配置发送消息
       for await (const chunk of this.chatController.sendMessage(text, images, this.localProvider, this.localModel)) {
         if (chunk.type === 'delta') {
           this.postMessage({ type: 'chat/stream', payload: { id, delta: chunk.content ?? '' } });
@@ -279,7 +292,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 </body>
 </html>`;
     } else {
-      const distUri = vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview');
+      const distUri = vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview');
       const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(distUri, 'main.js'));
       const cssPath = vscode.Uri.joinPath(distUri, 'main.css');
       const hasCss = fs.existsSync(cssPath.fsPath);

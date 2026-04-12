@@ -18,15 +18,25 @@ const noKeyRequired = new Set(['ollama']);
 
 export class AIGateway {
   getProvider(name: string): AIProvider {
-    const provider = providers[name];
-    if (!provider) {
-      throw new Error(`Unknown provider: ${name}. Supported: ${Object.keys(providers).join(', ')}`);
+    // Check if provider is registered
+    if (providers[name]) {
+      return providers[name];
     }
-    return provider;
+    // For unknown providers, assume they are local and use OpenAIProvider
+    // This allows user-defined local model providers to work
+    return new OpenAIProvider();
   }
 
   requiresApiKey(providerName: string): boolean {
-    return !noKeyRequired.has(providerName);
+    // Known providers that don't need API keys
+    if (noKeyRequired.has(providerName)) {
+      return false;
+    }
+    // Unknown providers (user-defined local ones) don't need API keys
+    if (!Object.prototype.hasOwnProperty.call(providers, providerName)) {
+      return false;
+    }
+    return true;
   }
 
   chatStream(

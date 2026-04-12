@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ChatViewProvider } from '../chat/chatViewProvider';
+import { RightChatPanelProvider } from '../chat/rightChatPanelProvider';
 import { ConfigManager } from '../core/config';
 
 export function registerCommands(
@@ -21,12 +22,11 @@ export function registerCommands(
       });
       if (key) {
         await ConfigManager.getInstance().setApiKey(key);
-        vscode.window.showInformationMessage('API key saved. Use AI Settings for per-provider configuration.');
+        vscode.window.showInformationMessage('API key saved. Use command "AI: Open Right Chat" for settings.');
       }
     }),
     vscode.commands.registerCommand('aiAgent.openSettings', async () => {
-      await vscode.commands.executeCommand('aiAgent.chat.focus');
-      chatProvider.postMessage({ type: 'settings/providers', payload: await ConfigManager.getInstance().getAllProvidersConfig() });
+      await RightChatPanelProvider.createOrShow(context.extensionUri);
     }),
   );
 }

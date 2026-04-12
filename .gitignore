@@ -39,3 +39,10 @@ venv/
 
 # Rust
 target/
+
+# Claude Code
+.claude/
+
+# Test outputs
+playwright-report/
+test-results/

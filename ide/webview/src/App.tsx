@@ -38,11 +38,51 @@ interface AllProvidersConfig {
   activeModel: string;
 }
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: number;
+}
+
 type Page = 'chat' | 'settings';
+
+// Load conversations from localStorage
+function loadConversations(): Conversation[] {
+  try {
+    const saved = localStorage.getItem('conversations');
+    if (saved) {
+      const parsed = JSON.parse(saved) as Conversation[];
+      return parsed;
+    }
+  } catch (err) {
+    console.error('Failed to load conversations:', err);
+  }
+  // Return default conversation if none exist
+  return [
+    {
+      id: `conv-${Date.now()}`,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+    },
+  ];
+}
+
+function generateConversationTitle(messages: Message[]): string {
+  if (messages.length === 0) return 'New Chat';
+  const firstMessage = messages.find((m) => m.role === 'user');
+  if (firstMessage && typeof firstMessage.content === 'string') {
+    return firstMessage.content.slice(0, 50) + (firstMessage.content.length > 50 ? '...' : '');
+  }
+  return 'Chat';
+}
 
 export default function App() {
   const [page, setPage] = useState<Page>('chat');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>(loadConversations());
+  const [currentConvId, setCurrentConvId] = useState<string>(conversations[0]?.id || '');
+  const currentConv = conversations.find((c) => c.id === currentConvId);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentMsgId, setCurrentMsgId] = useState<string | null>(null);
@@ -53,8 +93,62 @@ export default function App() {
   const [testingProviders, setTestingProviders] = useState<Record<string, 'testing' | 'success' | 'error'>>({});
   const [testMessages, setTestMessages] = useState<Record<string, string>>({});
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState<string>('You are a helpful AI assistant. Help the user with their coding questions and tasks.');
+
+  const messages = currentConv?.messages || [];
+
+  const setMessages = useCallback((updater: Message[] | ((prev: Message[]) => Message[])) => {
+    setConversations((prevConvs) => {
+      const updated = prevConvs.map((c) => {
+        if (c.id === currentConvId) {
+          // 使用 conversation 中的最新消息，而不是闭包中的旧 messages
+          const newMessages = typeof updater === 'function' ? updater(c.messages) : updater;
+          const title = c.title === 'New Chat' && newMessages.length > 0 ? generateConversationTitle(newMessages) : c.title;
+          return { ...c, messages: newMessages, title };
+        }
+        return c;
+      });
+      return updated;
+    });
+  }, [currentConvId]);  // ← 修复：移除 messages，只依赖 currentConvId
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Conversation management helpers
+  const updateMessages = useCallback((updater: (msgs: Message[]) => Message[]) => {
+    setConversations((prevConvs) => {
+      const updated = prevConvs.map((c) => {
+        if (c.id === currentConvId) {
+          return { ...c, messages: updater(c.messages) };
+        }
+        return c;
+      });
+      return updated;
+    });
+  }, [currentConvId]);
+
+  const createNewConversation = useCallback(() => {
+    const newConv: Conversation = {
+      id: `conv-${Date.now()}`,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+    };
+    setConversations((prev) => [newConv, ...prev]);
+    setCurrentConvId(newConv.id);
+  }, []);
+
+  const deleteConversation = useCallback((convId: string) => {
+    const remaining = conversations.filter((c) => c.id !== convId);
+    if (remaining.length === 0) {
+      createNewConversation();
+    } else {
+      setConversations(remaining);
+      if (currentConvId === convId) {
+        setCurrentConvId(remaining[0].id);
+      }
+    }
+  }, [conversations, currentConvId, createNewConversation]);
 
   // Streaming buffer: accumulate deltas and flush on rAF
   const streamBufferRef = useRef<string>('');
@@ -147,6 +241,24 @@ export default function App() {
           setTestMessages((prev) => ({ ...prev, [r.providerId]: r.message }));
           break;
         }
+        case 'settings/detectResult': {
+          const r = msg.payload as { success: boolean; providers?: ProviderConfig[]; message: string };
+          setTestMessages((prev) => ({ ...prev, 'detect-local': r.message }));
+          setTestingProviders((prev) => ({ ...prev, 'detect-local': r.success ? 'success' : 'error' }));
+
+          if (r.success && r.providers) {
+            // Save all detected providers to backend
+            r.providers.forEach((provider) => {
+              postMessage({ type: 'settings/saveProvider', payload: provider });
+            });
+
+            // Refresh provider list after all saves
+            setTimeout(() => {
+              postMessage({ type: 'settings/getProviders' });
+            }, 800);
+          }
+          break;
+        }
       }
     };
 
@@ -162,24 +274,77 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const readFileAsBase64 = (file: File): Promise<ImageAttachment> => {
+  // Persist conversations to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('conversations', JSON.stringify(conversations));
+    } catch (err) {
+      console.error('Failed to save conversations:', err);
+    }
+  }, [conversations]);
+
+  const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1];
-        resolve({ mediaType: file.type || 'image/png', data: base64, name: file.name });
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 1024;
+          const maxHeight = 1024;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL(file.type || 'image/png', 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
       };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
 
+  const readFileAsBase64 = async (file: File): Promise<ImageAttachment> => {
+    // Size limit: 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error(`Image too large (${(file.size / 1024 / 1024).toFixed(1)}MB > 5MB)`);
+    }
+
+    // Compress image
+    const compressedDataUrl = await compressImage(file);
+    const base64 = compressedDataUrl.split(',')[1];
+    return { mediaType: file.type || 'image/png', data: base64, name: file.name };
+  };
+
   const addImages = async (files: File[]) => {
     const imageFiles = files.filter((f) => f.type.startsWith('image/'));
     if (imageFiles.length === 0) return;
-    const attachments = await Promise.all(imageFiles.map(readFileAsBase64));
-    setPendingImages((prev) => [...prev, ...attachments]);
+
+    try {
+      const attachments = await Promise.all(imageFiles.map(readFileAsBase64));
+      setPendingImages((prev) => [...prev, ...attachments]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to process image';
+      console.error('Image error:', message);
+      alert(`Image error: ${message}`);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,6 +414,34 @@ export default function App() {
     postMessage({ type: 'settings/getProviders' });
   };
 
+  const exportChat = (format: 'markdown' | 'json') => {
+    if (messages.length === 0) return;
+
+    let content = '';
+    if (format === 'markdown') {
+      content = messages
+        .map((msg) => {
+          const prefix = msg.role === 'user' ? '### User' : '### Assistant';
+          const body = typeof msg.content === 'string' ? msg.content : msg.content.map((p) => p.type === 'text' ? (p as any).text : '[image]').join('\n');
+          return `${prefix}\n${body}`;
+        })
+        .join('\n\n');
+      content = `# Chat Export\n\n${content}`;
+    } else {
+      content = JSON.stringify(messages, null, 2);
+    }
+
+    const blob = new Blob([content], { type: format === 'markdown' ? 'text/markdown' : 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat_${new Date().toISOString().slice(0, 10)}.${format === 'markdown' ? 'md' : 'json'}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const bgColor = theme === 'dark' ? '#1e1e1e' : '#ffffff';
   const textColor = theme === 'dark' ? '#e0e0e0' : '#333333';
   const borderColor = theme === 'dark' ? '#404040' : '#e0e0e0';
@@ -269,8 +462,10 @@ export default function App() {
         providersConfig={providersConfig}
         testingProviders={testingProviders}
         testMessages={testMessages}
+        systemPrompt={systemPrompt}
         onBack={() => setPage('chat')}
         onRefresh={() => postMessage({ type: 'settings/getProviders' })}
+        onSystemPromptChange={setSystemPrompt}
       />
     );
   }
@@ -292,10 +487,75 @@ export default function App() {
           <button type="button" onClick={handleTestConnection} disabled={connectionStatus === 'testing'} style={{ ...smallBtnStyle(borderColor, textColor), opacity: connectionStatus === 'testing' ? 0.6 : 1 }}>
             {connectionStatus === 'testing' ? '...' : 'Test'}
           </button>
+          {messages.length > 0 && (
+            <div style={{ display: 'flex', gap: '3px' }}>
+              <button type="button" onClick={() => exportChat('markdown')} style={{ ...smallBtnStyle(borderColor, textColor), fontSize: '10px', padding: '2px 6px' }}>MD</button>
+              <button type="button" onClick={() => exportChat('json')} style={{ ...smallBtnStyle(borderColor, textColor), fontSize: '10px', padding: '2px 6px' }}>JSON</button>
+            </div>
+          )}
           <button type="button" onClick={openSettings} style={smallBtnStyle(borderColor, textColor)}>
             Settings
           </button>
         </div>
+      </div>
+
+      {/* Conversation Tabs */}
+      <div style={{ display: 'flex', gap: '4px', padding: '6px 12px', borderBottom: `1px solid ${borderColor}`, backgroundColor: headerBg, overflowX: 'auto' }}>
+        {conversations.map((conv) => (
+          <div
+            key={conv.id}
+            onClick={() => setCurrentConvId(conv.id)}
+            style={{
+              padding: '4px 8px',
+              backgroundColor: conv.id === currentConvId ? (theme === 'dark' ? '#4ec9b0' : '#0078d4') : borderColor,
+              color: conv.id === currentConvId ? '#fff' : textColor,
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontSize: '11px',
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            <span>{conv.title.length > 20 ? conv.title.slice(0, 20) + '...' : conv.title}</span>
+            {conversations.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(conv.id);
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: conv.id === currentConvId ? '#fff' : textColor,
+                  cursor: 'pointer',
+                  padding: '0',
+                  fontSize: '12px',
+                  opacity: 0.7,
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={createNewConversation}
+          style={{
+            padding: '4px 8px',
+            backgroundColor: 'transparent',
+            border: `1px solid ${borderColor}`,
+            borderRadius: '3px',
+            color: textColor,
+            cursor: 'pointer',
+            fontSize: '11px',
+          }}
+        >
+          + New
+        </button>
       </div>
 
       {/* Messages Area */}
@@ -503,13 +763,16 @@ interface SettingsPageProps {
   providersConfig: AllProvidersConfig | null;
   testingProviders: Record<string, 'testing' | 'success' | 'error'>;
   testMessages: Record<string, string>;
+  systemPrompt: string;
   onBack: () => void;
   onRefresh: () => void;
+  onSystemPromptChange: (prompt: string) => void;
 }
 
-function SettingsPage({ theme, bgColor, textColor, borderColor, headerBg, inputBg, cardBg, providersConfig, testingProviders, testMessages, onBack, onRefresh }: SettingsPageProps) {
+function SettingsPage({ theme, bgColor, textColor, borderColor, headerBg, inputBg, cardBg, providersConfig, testingProviders, testMessages, systemPrompt, onBack, onRefresh, onSystemPromptChange }: SettingsPageProps) {
   const [editingProvider, setEditingProvider] = useState<ProviderConfig | null>(null);
   const [showAddLocal, setShowAddLocal] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [newLocal, setNewLocal] = useState<ProviderConfig>({ id: '', name: '', type: 'local', baseUrl: 'http://localhost:11434/v1', models: ['llama3'], defaultModel: 'llama3', enabled: true });
 
   useEffect(() => { onRefresh(); }, []);
@@ -529,6 +792,10 @@ function SettingsPage({ theme, bgColor, textColor, borderColor, headerBg, inputB
 
   const handleTestProvider = (providerId: string) => {
     postMessage({ type: 'settings/testProvider', payload: { providerId } });
+  };
+
+  const handleDetectLocalModels = (baseUrl: string) => {
+    postMessage({ type: 'settings/detectLocalModels', payload: { baseUrl } });
   };
 
   const handleAddLocal = () => {
@@ -567,8 +834,16 @@ function SettingsPage({ theme, bgColor, textColor, borderColor, headerBg, inputB
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ fontSize: '13px', fontWeight: 600, margin: 0, opacity: 0.9 }}>Local AI (Offline)</h3>
-          <button type="button" onClick={() => setShowAddLocal(!showAddLocal)} style={{ ...smallBtnStyle(borderColor, textColor), fontSize: '11px' }}>+ Add Local</button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button type="button" onClick={() => handleDetectLocalModels('http://localhost:11434/v1')} style={{ ...smallBtnStyle(borderColor, textColor), fontSize: '11px' }}>Auto-detect</button>
+            <button type="button" onClick={() => setShowAddLocal(!showAddLocal)} style={{ ...smallBtnStyle(borderColor, textColor), fontSize: '11px' }}>+ Add Local</button>
+          </div>
         </div>
+        {testMessages['detect-local'] && (
+          <div style={{ fontSize: '11px', marginBottom: '8px', padding: '8px', borderRadius: '4px', backgroundColor: testingProviders['detect-local'] === 'success' ? 'rgba(78, 201, 176, 0.1)' : 'rgba(244, 135, 113, 0.1)', color: testingProviders['detect-local'] === 'success' ? '#4ec9b0' : '#f48771' }}>
+            {testMessages['detect-local']}
+          </div>
+        )}
 
         {showAddLocal && (
           <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: cardBg, border: `1px solid ${borderColor}`, marginBottom: '10px' }}>
@@ -612,6 +887,53 @@ function SettingsPage({ theme, bgColor, textColor, borderColor, headerBg, inputB
           ))}
           {localProviders.length === 0 && !showAddLocal && (
             <div style={{ fontSize: '12px', opacity: 0.5, textAlign: 'center', padding: '16px' }}>No local providers configured.</div>
+          )}
+        </div>
+
+        {/* Advanced Settings */}
+        <div style={{ marginTop: '24px', borderTop: `1px solid ${borderColor}`, paddingTop: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              backgroundColor: 'transparent',
+              border: `1px solid ${borderColor}`,
+              borderRadius: '4px',
+              color: textColor,
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            Advanced Settings
+            <span style={{ opacity: 0.6 }}>{showAdvanced ? '▼' : '▶'}</span>
+          </button>
+
+          {showAdvanced && (
+            <div style={{ marginTop: '12px', padding: '12px', backgroundColor: cardBg, borderRadius: '4px', border: `1px solid ${borderColor}` }}>
+              <label style={labelStyle}>System Prompt</label>
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => onSystemPromptChange(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  height: '100px',
+                  resize: 'vertical',
+                  fontFamily: 'Consolas, monospace',
+                  fontSize: '11px'
+                }}
+                placeholder="You are a helpful AI assistant..."
+              />
+              <div style={{ fontSize: '11px', marginTop: '6px', opacity: 0.6 }}>
+                This prompt will be sent with every message to guide the AI's behavior.
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -703,7 +1025,7 @@ function ProviderCard({ provider, isActive, activeModel, theme, cardBg, borderCo
           {testStatus === 'testing' ? 'Testing...' : testMessage}
         </div>
       )}
-      <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+      <div style={{ display: 'flex', gap: '6px', marginTop: '2px', flexWrap: 'wrap' }}>
         <button type="button" onClick={onEdit} style={smallBtnStyle(borderColor, textColor)}>Edit</button>
         <button type="button" onClick={() => onTest(provider.id)} style={smallBtnStyle(borderColor, textColor)}>Test</button>
         {!isActive && (

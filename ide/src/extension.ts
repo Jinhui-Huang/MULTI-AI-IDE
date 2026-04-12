@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ChatViewProvider } from './chat/chatViewProvider';
+import { RightChatPanelProvider } from './chat/rightChatPanelProvider';
 import { registerCommands } from './commands';
 import { createLogger } from './core/logger';
 import { ConfigManager } from './core/config';
@@ -29,6 +30,13 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   registerCommands(context, chatProvider);
+
+  // Register command to open right chat panel
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiAgent.openRightChat', async () => {
+      await RightChatPanelProvider.createOrShow(context.extensionUri);
+    })
+  );
 
   log.info('AI Agent IDE activated');
 }

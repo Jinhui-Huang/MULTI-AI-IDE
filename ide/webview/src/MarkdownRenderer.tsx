@@ -1,7 +1,61 @@
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useCallback, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import hljs from 'highlight.js';
 import type { Components } from 'react-markdown';
+
+// ==================== Image Component ====================
+
+function ImageWithModal({ src, alt, colors }: { src?: string; alt?: string; colors: Record<string, string> }) {
+  const [showFullSize, setShowFullSize] = useState(false);
+
+  if (!src) return null;
+
+  return (
+    <>
+      <img
+        src={src}
+        alt={alt || 'image'}
+        onClick={() => setShowFullSize(true)}
+        style={{
+          maxWidth: '100%',
+          maxHeight: '300px',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          margin: '8px 0',
+          border: `1px solid ${colors.codeBorder}`,
+        }}
+      />
+      {showFullSize && (
+        <div
+          onClick={() => setShowFullSize(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <img
+            src={src}
+            alt={alt || 'image'}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              borderRadius: '6px',
+            }}
+          />
+        </div>
+      )}
+    </>
+  );
+}
 
 interface Props {
   content: string;
@@ -59,6 +113,10 @@ function MarkdownRendererInner({ content, theme }: Props) {
 
     a({ href, children }) {
       return <a href={href} style={{ color: colors.linkColor, textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">{children}</a>;
+    },
+
+    img({ src, alt }) {
+      return <ImageWithModal src={src} alt={alt} colors={colors} />;
     },
 
     ul({ children }) { return <ul style={{ margin: '4px 0 8px', paddingLeft: '20px' }}>{children}</ul>; },
@@ -122,6 +180,20 @@ function CodeBlock({ lang, code, colors }: CodeBlockProps) {
     });
   }, [code]);
 
+  // 高亮代码
+  const highlightedCode = useMemo(() => {
+    try {
+      if (lang) {
+        return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+      } else {
+        return hljs.highlightAuto(code).value;
+      }
+    } catch (err) {
+      // 如果高亮失败，返回原始代码（转义 HTML）
+      return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }, [code, lang]);
+
   return (
     <div style={{ position: 'relative', margin: '8px 0', borderRadius: '6px', border: `1px solid ${colors.codeBorder}`, overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 12px', backgroundColor: colors.codeBorder, fontSize: '11px', opacity: 0.8 }}>
@@ -135,7 +207,10 @@ function CodeBlock({ lang, code, colors }: CodeBlockProps) {
         </button>
       </div>
       <pre style={{ margin: 0, padding: '12px', backgroundColor: colors.codeBg, overflowX: 'auto', fontSize: '12px', lineHeight: '1.5', fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace" }}>
-        <code>{code}</code>
+        <code
+          className={lang ? `hljs language-${lang}` : 'hljs'}
+          dangerouslySetInnerHTML={{ __html: highlightedCode }}
+        />
       </pre>
     </div>
   );

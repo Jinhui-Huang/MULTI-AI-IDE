@@ -2,8 +2,21 @@
   "name": "ai-agent-ide",
   "displayName": "AI Agent IDE",
   "version": "0.1.0",
-  "engines": { "vscode": "^1.90.0" },
-  "activationEvents": ["onView:aiAgent.chat"],
+  "description": "Multi-AI Agent collaborative IDE powered by VS Code",
+  "publisher": "ai-agent-ide",
+  "author": {
+    "name": "AI Agent IDE"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/multi-ai-ide"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "activationEvents": [
+    "onView:aiAgent.chat"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -25,17 +38,56 @@
       ]
     },
     "commands": [
-      { "command": "aiAgent.openChat",  "title": "AI: Open Chat" },
-      { "command": "aiAgent.clearChat", "title": "AI: Clear Chat" },
-      { "command": "aiAgent.setApiKey", "title": "AI: Set API Key" },
-      { "command": "aiAgent.openSettings", "title": "AI: Open AI Settings" }
+      {
+        "command": "aiAgent.openChat",
+        "title": "AI: Open Left Chat"
+      },
+      {
+        "command": "aiAgent.clearChat",
+        "title": "AI: Clear Chat"
+      },
+      {
+        "command": "aiAgent.setApiKey",
+        "title": "AI: Set API Key"
+      },
+      {
+        "command": "aiAgent.openSettings",
+        "title": "AI: Open Right Chat",
+        "icon": "$(hubot)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "aiAgent.openSettings"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "aiAgent.openSettings",
+          "group": "navigation",
+          "when": "resourceScheme == file"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "aiAgent.openSettings",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s"
+      }
     ],
     "configuration": {
       "title": "AI Agent IDE",
       "properties": {
         "aiAgent.provider": {
           "type": "string",
-          "enum": ["anthropic", "openai", "ollama", "gemini"],
+          "enum": [
+            "anthropic",
+            "openai",
+            "ollama",
+            "gemini"
+          ],
           "default": "anthropic"
         },
         "aiAgent.model": {
@@ -50,16 +102,19 @@
     }
   },
   "scripts": {
-    "build":       "node scripts/build.mjs",
-    "watch":       "node scripts/build.mjs --watch",
-    "package":     "vsce package",
-    "lint":        "eslint src --ext .ts"
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "package": "vsce package",
+    "lint": "eslint src --ext .ts",
+    "test": "node test-smoke.js"
   },
   "devDependencies": {
-    "@types/vscode":    "^1.90.0",
-    "@types/node":      "^20.0.0",
-    "typescript":       "^5.4.0",
-    "@vscode/vsce":     "^3.0.0",
-    "esbuild":          "^0.21.0"
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.4"
   }
 }

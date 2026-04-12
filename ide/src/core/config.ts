@@ -39,8 +39,8 @@ const DEFAULT_PROVIDERS: ProviderConfig[] = [
     name: 'Ollama (Local)',
     type: 'local',
     baseUrl: 'http://localhost:11434/v1',
-    models: ['llama3', 'codellama', 'mistral', 'deepseek-coder'],
-    defaultModel: 'llama3',
+    models: ['qwen2.5-coder:7b', 'qwen2.5-coder:14b', 'llama2', 'mistral:7b'],
+    defaultModel: 'qwen2.5-coder:7b',
     enabled: true,
   },
 ];
@@ -179,6 +179,18 @@ export class ConfigManager {
       await cfg.update('baseUrl', '', vscode.ConfigurationTarget.Global);
     }
 
+    this.onChangeEmitter.fire(this.getConfig());
+  }
+
+  // --- System Prompt management ---
+
+  async getSystemPrompt(): Promise<string> {
+    const stored = this.context.globalState.get<string>('aiAgent.systemPrompt');
+    return stored || 'You are a helpful AI assistant. Help the user with their coding questions and tasks.';
+  }
+
+  async setSystemPrompt(prompt: string): Promise<void> {
+    await this.context.globalState.update('aiAgent.systemPrompt', prompt);
     this.onChangeEmitter.fire(this.getConfig());
   }
 
