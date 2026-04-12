@@ -6,6 +6,7 @@ import { createLogger } from '../core/logger';
 import { ConfigManager } from '../core/config';
 import { ChatController } from './chatController';
 import { CodeEditAgent } from '../codeEdit/codeEditAgent';
+import { SearchReplaceBlock } from '../codeEdit/searchReplaceParser';
 import { AgentRuntime } from '../agent/agentRuntime';
 
 const log = createLogger('chatViewProvider');
@@ -13,6 +14,7 @@ const log = createLogger('chatViewProvider');
 interface PendingDiffs {
   messageId: string;
   diffs: CodeDiff[];
+  blocks?: SearchReplaceBlock[]; // SEARCH/REPLACE 块，用于实际应用
 }
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
@@ -256,8 +258,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     const { messageId, diffs } = this.pendingDiffs;
 
     try {
-      log.info(`[CODE-EDIT] Applying ${diffs.length} diffs...`);
-      const result = await this.codeEditAgent.applyDiffs(diffs);
+      log.info(`[SR-APPLY] Applying ${this.pendingDiffs.blocks?.length || diffs.length} modifications...`);
+      const result = await this.codeEditAgent.applyDiffs(diffs, this.pendingDiffs.blocks);
 
       if (result.success) {
         // 刷新编辑器
@@ -503,8 +505,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
               payload: { id, delta: '\n等待你的确认...\n' },
             });
 
-            // 保存待应用的 diff
-            this.pendingDiffs = { messageId: id, diffs: analyzeResult.diffs };
+            // 保存待应用的 diff 和 blocks
+            this.pendingDiffs = {
+              messageId: id,
+              diffs: analyzeResult.diffs,
+              blocks: analyzeResult.blocks,
+            };
 
             // 发送 diff 预览给 WebView
             this.postMessage({

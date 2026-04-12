@@ -2,8 +2,8 @@ import { ChatController } from '../chat/chatController';
 import { createLogger } from '../core/logger';
 import { CodeDiff } from '../types/protocol';
 import { ContextCollector, CollectedContext } from './contextCollector';
-import { DiffApplier, ApplyDiffResult } from './diffApplier';
-import { DiffParser, DiffParseResult } from './diffParser';
+import { SearchReplaceApplier, ApplySearchReplaceResult } from './searchReplaceApplier';
+import { SearchReplaceParser, SearchReplaceBlock } from './searchReplaceParser';
 import { CodeEditPromptBuilder } from './promptBuilder';
 
 const log = createLogger('CodeEditAgent');
@@ -31,6 +31,7 @@ export interface CodeEditRequest {
 export interface CodeEditResult {
   success: boolean;
   diffs?: CodeDiff[];
+  blocks?: SearchReplaceBlock[]; // 原始 SEARCH/REPLACE 块，用于应用
   error?: string;
   rawResponse?: string;
   isCodeRequest: boolean;
@@ -134,9 +135,9 @@ export class CodeEditAgent {
         };
       }
 
-      // 4. 解析 diff
-      log.info(`📋 Parsing diff format...`);
-      const parseResult = DiffParser.parse(llmResponse);
+      // 4. 解析 SEARCH/REPLACE 块
+      log.info(`📋 Parsing SEARCH/REPLACE blocks...`);
+      const parseResult = SearchReplaceParser.parse(llmResponse);
 
       if (!parseResult.success) {
         log.warn(`   ✗ Parse failed: ${parseResult.error}`);
@@ -148,15 +149,19 @@ export class CodeEditAgent {
         };
       }
 
-      log.info(`   ✓ Parsed ${parseResult.diffs.length} diffs successfully`);
-      parseResult.diffs.forEach((diff, i) => {
-        log.info(`     [${i + 1}] ${diff.filePath}: +${diff.addedLines}/-${diff.removedLines}`);
+      log.info(`   ✓ Parsed ${parseResult.blocks.length} SEARCH/REPLACE blocks successfully`);
+      parseResult.blocks.forEach((block, i) => {
+        log.info(`     [${i + 1}] search: ${block.search.length} chars, replace: ${block.replace.length} chars`);
       });
+
+      // 转换为 CodeDiff 格式以保持兼容性（用于 UI 展示）
+      const diffs = this.convertBlocksToDiffs(req.currentFilePath!, parseResult.blocks);
 
       return {
         success: true,
         isCodeRequest: true,
-        diffs: parseResult.diffs,
+        diffs,
+        blocks: parseResult.blocks, // 保存原始块以供应用
         rawResponse: llmResponse,
       };
     } catch (error) {
@@ -171,38 +176,55 @@ export class CodeEditAgent {
   }
 
   /**
-   * 应用 diff 到文件
+   * 应用 SEARCH/REPLACE 块到文件
+   * diffs 是从 analyze 返回的 CodeDiff 格式（用于 UI 展示）
+   * 但实际应用时需要从原始块中提取真实数据
    */
-  async applyDiffs(diffs: CodeDiff[]): Promise<ApplyResult> {
-    log.info(`Applying ${diffs.length} diffs...`);
+  async applyDiffs(diffs: CodeDiff[], blocks?: SearchReplaceBlock[]): Promise<ApplyResult> {
+    log.info(`[SR-APPLY] Applying ${blocks?.length || diffs.length} modifications...`);
+
+    if (!blocks || blocks.length === 0) {
+      return {
+        success: false,
+        error: 'No search/replace blocks provided',
+      };
+    }
 
     const appliedFiles: string[] = [];
     const errors: string[] = [];
 
-    const applier = new DiffApplier(this.projectRoot);
+    // 按文件分组块（暂时假设所有块都针对当前文件）
+    const applier = new SearchReplaceApplier(this.projectRoot);
 
-    for (const diff of diffs) {
-      try {
-        const result = await applier.apply(diff);
+    try {
+      // 应用所有块到当前文件
+      const filePath = diffs[0].filePath;
+      const result = await applier.apply(filePath, blocks);
 
-        if (result.success) {
-          appliedFiles.push(result.filePath);
-          log.info(`✓ Applied ${result.filePath}`);
-        } else {
-          errors.push(`${diff.filePath}: ${result.error}`);
-          log.error(`✗ Failed to apply ${diff.filePath}: ${result.error}`);
+      if (result.success) {
+        appliedFiles.push(result.filePath);
+        log.info(`[SR-APPLY] ✓ Applied ${result.appliedBlocks}/${blocks.length} blocks to ${result.filePath}`);
+
+        if (result.failedBlocks.length > 0) {
+          result.failedBlocks.forEach((failed) => {
+            errors.push(`Block ${failed.blockIndex}: ${failed.error}`);
+            log.warn(`[SR-APPLY] Block ${failed.blockIndex} failed: ${failed.error}`);
+          });
         }
-      } catch (error) {
-        const err = error as { message: string };
-        errors.push(`${diff.filePath}: ${err.message}`);
-        log.error(`✗ Error applying ${diff.filePath}: ${err.message}`);
+      } else {
+        errors.push(`${filePath}: ${result.error}`);
+        log.error(`[SR-APPLY] ✗ Failed to apply blocks: ${result.error}`);
       }
+    } catch (error) {
+      const err = error as { message: string };
+      errors.push(`Error: ${err.message}`);
+      log.error(`[SR-APPLY] ✗ Exception: ${err.message}`);
     }
 
-    if (appliedFiles.length === 0 && errors.length > 0) {
+    if (appliedFiles.length === 0) {
       return {
         success: false,
-        error: `Failed to apply diffs: ${errors.join('; ')}`,
+        error: errors.length > 0 ? errors[0] : 'Failed to apply modifications',
       };
     }
 
@@ -210,6 +232,64 @@ export class CodeEditAgent {
       success: true,
       appliedFiles,
     };
+  }
+
+  /**
+   * 将 SEARCH/REPLACE 块转换为 CodeDiff 格式（用于 UI 展示）
+   */
+  private convertBlocksToDiffs(filePath: string, blocks: SearchReplaceBlock[]): CodeDiff[] {
+    log.debug(`[SR-CONVERT] Converting ${blocks.length} blocks to CodeDiff format`);
+
+    const diffs: CodeDiff[] = [];
+
+    for (const block of blocks) {
+      const searchLines = block.search.split('\n');
+      const replaceLines = block.replace.split('\n');
+
+      // 简单计算：删除的行数 = search 行数 - 1（合并相同部分）
+      // 新增的行数 = replace 行数
+      const addedLines = Math.max(0, replaceLines.length - searchLines.length);
+      const removedLines = Math.max(0, searchLines.length - replaceLines.length);
+
+      diffs.push({
+        filePath,
+        hunks: [
+          {
+            oldStart: 1,
+            oldCount: searchLines.length,
+            newStart: 1,
+            newCount: replaceLines.length,
+            lines: this.createDiffLines(block),
+          },
+        ],
+        addedLines,
+        removedLines,
+      });
+    }
+
+    return diffs;
+  }
+
+  /**
+   * 从 SEARCH/REPLACE 块创建 DiffLine 数组（用于 UI 展示）
+   */
+  private createDiffLines(block: SearchReplaceBlock) {
+    const lines: Array<{ type: 'context' | 'add' | 'remove'; content: string }> = [];
+
+    const searchLines = block.search.split('\n');
+    const replaceLines = block.replace.split('\n');
+
+    // 标记已删除的行
+    for (const line of searchLines) {
+      lines.push({ type: 'remove', content: line });
+    }
+
+    // 标记已新增的行
+    for (const line of replaceLines) {
+      lines.push({ type: 'add', content: line });
+    }
+
+    return lines;
   }
 
   /**
