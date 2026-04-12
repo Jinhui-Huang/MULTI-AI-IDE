@@ -215,21 +215,27 @@ export class SearchReplaceApplier {
     }
 
     if (searchIndex === -1) {
-      const error = `SEARCH block not found in file (tried: exact, fuzzy, normalized)`;
-      log.warn(`[SR-APPLY] ✗ ${error}`);
-      log.warn(`[SR-APPLY]   Search block (first 100 chars): ${block.search.substring(0, 100)}`);
-
-      // 详细的诊断信息
       const searchLines = block.search.split('\n');
       const contentLines = content.split('\n');
-      log.warn(`[SR-APPLY]   Search has ${searchLines.length} lines, file has ${contentLines.length} lines`);
-      log.warn(`[SR-APPLY]   First search line: "${searchLines[0]}"`);
-      log.warn(`[SR-APPLY]   First file line: "${contentLines[0]}"`);
 
-      // 显示搜索块的完整内容（用于调试）
-      log.warn(`[SR-APPLY]   ===== FULL SEARCH BLOCK START =====`);
-      log.warn(block.search);
-      log.warn(`[SR-APPLY]   ===== FULL SEARCH BLOCK END =====`);
+      // 构建详细的诊断信息
+      const diagnostic = [
+        `SEARCH block not found in file (tried: exact, fuzzy, normalized)`,
+        ``,
+        `📊 诊断信息：`,
+        `  - SEARCH 块有 ${searchLines.length} 行，文件有 ${contentLines.length} 行`,
+        `  - SEARCH 第一行: "${searchLines[0]}"`,
+        `  - 文件第一行: "${contentLines[0]}"`,
+        ``,
+        `🔍 SEARCH 块完整内容：`,
+        `${block.search}`,
+        ``,
+        `📄 文件前 ${Math.min(10, contentLines.length)} 行：`,
+        contentLines.slice(0, 10).map((line, i) => `  ${i + 1}: ${line}`).join('\n'),
+      ].join('\n');
+
+      const error = diagnostic;
+      log.error(`[SR-APPLY] ${error}`);
 
       return {
         success: false,
