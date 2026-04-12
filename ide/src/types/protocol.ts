@@ -23,6 +23,27 @@ export interface ImageAttachment {
   name?: string;
 }
 
+// Unified Diff 格式相关类型
+export interface DiffLine {
+  type: 'context' | 'add' | 'remove';
+  content: string;
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
+  lines: DiffLine[];
+}
+
+export interface CodeDiff {
+  filePath: string;
+  hunks: DiffHunk[];
+  addedLines: number;
+  removedLines: number;
+}
+
 // 扩展 → WebView 的消息类型
 export type ExtToWebMsg =
   | {
@@ -40,8 +61,13 @@ export type ExtToWebMsg =
   | { type: 'chat/done'; payload: { id: string } }
   | { type: 'chat/error'; payload: { id: string; message: string } }
   | { type: 'chat/clear' }
+  | { type: 'chat/operationButtons'; payload: { id: string; buttons: Array<{ id: string; label: string; action: string; style: string }> } }
+  | { type: 'code/diffPreview'; payload: { messageId: string; diffs: CodeDiff[] } }
+  | { type: 'code/applyResult'; payload: { success: boolean; appliedFiles?: string[]; error?: string } }
+  | { type: 'current_file_changed'; payload: { filePath: string | null; fileName: string | null; exists: boolean } }
   | { type: 'settings/providers'; payload: AllProvidersConfig }
-  | { type: 'settings/testResult'; payload: { providerId: string; success: boolean; message: string } };
+  | { type: 'settings/testResult'; payload: { providerId: string; success: boolean; message: string } }
+  | { type: 'settings/detectResult'; payload: { success: boolean; providers?: ProviderConfig[]; message: string } };
 
 // WebView → 扩展 的消息类型
 export type WebToExtMsg =
@@ -49,6 +75,11 @@ export type WebToExtMsg =
   | { type: 'ping' }
   | { type: 'chat/send'; payload: { text: string; images?: ImageAttachment[] } }
   | { type: 'chat/cancel'; payload: { id: string } }
+  | { type: 'chat/applyOperations'; payload: {} }
+  | { type: 'chat/cancelOperations'; payload: {} }
+  | { type: 'chat/autoApply'; payload: {} }
+  | { type: 'code/applyDiffs'; payload: { messageId: string } }
+  | { type: 'code/rejectDiffs'; payload: { messageId: string } }
   | { type: 'settings/open' }
   | { type: 'settings/getProviders' }
   | { type: 'settings/saveProvider'; payload: ProviderConfig }

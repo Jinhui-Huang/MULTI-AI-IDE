@@ -1,19 +1,31 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { ExtToWebMsg, WebToExtMsg } from '../types/protocol';
+import * as path from 'path';
+import { ExtToWebMsg, WebToExtMsg, CodeDiff } from '../types/protocol';
 import { createLogger } from '../core/logger';
 import { ConfigManager } from '../core/config';
 import { ChatController } from './chatController';
+import { CodeEditAgent } from '../codeEdit/codeEditAgent';
+import { AgentRuntime } from '../agent/agentRuntime';
 
 const log = createLogger('chatViewProvider');
+
+interface PendingDiffs {
+  messageId: string;
+  diffs: CodeDiff[];
+}
 
 export class ChatViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private configManager: ConfigManager;
   private chatController = new ChatController();
+  private codeEditAgent?: CodeEditAgent;
+  private agentRuntime?: AgentRuntime;
   // 左边 panel 独立的配置状态（不受全局影响）
   private localProvider: string = '';
   private localModel: string = '';
+  // Diff 预览状态
+  private pendingDiffs: PendingDiffs | null = null;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.configManager = ConfigManager.getInstance();
@@ -21,6 +33,87 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     const config = this.configManager.getConfig();
     this.localProvider = config.provider;
     this.localModel = config.model;
+
+    // 初始化代码编辑代理
+    const projectRoot = this.resolveProjectRoot();
+    if (projectRoot) {
+      this.agentRuntime = new AgentRuntime(projectRoot);
+      this.codeEditAgent = new CodeEditAgent(projectRoot, this.chatController);
+      log.info(`CodeEditAgent initialized in ChatViewProvider with root: ${projectRoot}, provider: ${this.localProvider}`);
+    }
+
+    // 监听编辑器变化，动态更新 projectRoot 和发送当前文件信息
+    vscode.window.onDidChangeActiveTextEditor(() => {
+      this.updateProjectRoot();
+      this.sendCurrentFileInfo();
+    });
+  }
+
+  /**
+   * 根据当前打开的文件动态解析 projectRoot
+   */
+  private resolveProjectRoot(): string | undefined {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      return undefined;
+    }
+
+    // 如果有当前编辑器，使用其所在位置
+    const currentFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+    if (currentFile) {
+      for (const folder of workspaceFolders) {
+        if (currentFile.startsWith(folder.uri.fsPath)) {
+          return folder.uri.fsPath;
+        }
+      }
+    }
+
+    // 默认使用第一个 workspace 文件夹
+    return workspaceFolders[0].uri.fsPath;
+  }
+
+  /**
+   * 当编辑器切换时，更新 projectRoot（如果需要）
+   */
+  private updateProjectRoot(): void {
+    const newRoot = this.resolveProjectRoot();
+    if (newRoot && (!this.agentRuntime || newRoot !== this.agentRuntime.getProjectRoot())) {
+      log.info(`Updating projectRoot to: ${newRoot}`);
+      this.agentRuntime = new AgentRuntime(newRoot);
+      this.codeEditAgent = new CodeEditAgent(newRoot, this.chatController);
+    }
+  }
+
+  /**
+   * 向 WebView 发送当前文件信息
+   */
+  private sendCurrentFileInfo(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+      this.postMessage({
+        type: 'current_file_changed',
+        payload: {
+          filePath: null,
+          fileName: null,
+          exists: false,
+        },
+      });
+      return;
+    }
+
+    const filePath = editor.document.uri.fsPath;
+    const fileName = editor.document.fileName.split(/[\\/]/).pop() || '';
+
+    this.postMessage({
+      type: 'current_file_changed',
+      payload: {
+        filePath,
+        fileName,
+        exists: true,
+      },
+    });
+
+    log.info(`Sent current file info: ${fileName} (${filePath})`);
   }
 
   resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -57,6 +150,8 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
             },
           },
         });
+        // 在 WebView 准备好后发送当前文件信息
+        this.sendCurrentFileInfo();
         break;
       }
       case 'ping':
@@ -136,8 +231,105 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       }
       case 'settings/open':
         break;
+
+      // Code diff handlers
+      case 'code/applyDiffs': {
+        await this.handleApplyDiffs();
+        break;
+      }
+      case 'code/rejectDiffs': {
+        await this.handleRejectDiffs();
+        break;
+      }
     }
   }
+
+  /**
+   * 应用待处理的 diff
+   */
+  private async handleApplyDiffs(): Promise<void> {
+    if (!this.pendingDiffs || !this.codeEditAgent) {
+      log.warn('[CHAT] No pending diffs to apply');
+      return;
+    }
+
+    const { messageId, diffs } = this.pendingDiffs;
+
+    try {
+      log.info(`[CODE-EDIT] Applying ${diffs.length} diffs...`);
+      const result = await this.codeEditAgent.applyDiffs(diffs);
+
+      if (result.success) {
+        // 刷新编辑器
+        if (result.appliedFiles && result.appliedFiles.length > 0) {
+          for (const filePath of result.appliedFiles) {
+            const uri = vscode.Uri.file(filePath);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            await vscode.window.showTextDocument(doc, { preview: false });
+          }
+        }
+
+        this.postMessage({
+          type: 'code/applyResult',
+          payload: {
+            success: true,
+            appliedFiles: result.appliedFiles,
+          },
+        });
+
+        log.info(`[CODE-EDIT] ✅ Applied ${result.appliedFiles?.length || 0} files`);
+      } else {
+        this.postMessage({
+          type: 'code/applyResult',
+          payload: {
+            success: false,
+            error: result.error,
+          },
+        });
+
+        log.error(`[CODE-EDIT] ✗ Apply failed: ${result.error}`);
+      }
+    } catch (error) {
+      const err = error as { message: string };
+      log.error(`[CODE-EDIT] Error applying diffs: ${err.message}`);
+      this.postMessage({
+        type: 'code/applyResult',
+        payload: {
+          success: false,
+          error: err.message,
+        },
+      });
+    } finally {
+      this.pendingDiffs = null;
+      this.postMessage({ type: 'chat/done', payload: { id: messageId } });
+    }
+  }
+
+  /**
+   * 拒绝待处理的 diff
+   */
+  private async handleRejectDiffs(): Promise<void> {
+    if (!this.pendingDiffs) {
+      log.warn('[CODE-EDIT] No pending diffs to reject');
+      return;
+    }
+
+    const { messageId } = this.pendingDiffs;
+
+    log.info('[CODE-EDIT] Diffs rejected by user');
+    this.pendingDiffs = null;
+
+    this.postMessage({
+      type: 'code/applyResult',
+      payload: {
+        success: false,
+        error: 'User rejected the changes',
+      },
+    });
+
+    this.postMessage({ type: 'chat/done', payload: { id: messageId } });
+  }
+
 
   clearHistory() {
     this.chatController.clearHistory();
@@ -240,21 +432,156 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private async handleChatSend(text: string, images?: import('../types/protocol').ImageAttachment[]) {
     const id = `msg-${Date.now()}`;
     try {
-      // 使用左边 panel 的本地配置发送消息
-      for await (const chunk of this.chatController.sendMessage(text, images, this.localProvider, this.localModel)) {
-        if (chunk.type === 'delta') {
-          this.postMessage({ type: 'chat/stream', payload: { id, delta: chunk.content ?? '' } });
-        } else if (chunk.type === 'done') {
+      const currentFilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
+
+      log.info(`[CHAT] User message: "${text}"`);
+      log.info(`[CHAT] currentFile: ${currentFilePath}, codeEditAgentReady: ${!!this.codeEditAgent}`);
+
+      // 检测是否为代码编辑请求
+      const isCodeRequest = this.codeEditAgent?.isCodeEditRequest(text) ?? false;
+
+      if (isCodeRequest && currentFilePath && this.codeEditAgent) {
+        // 代码修改请求：使用 CodeEditAgent 处理
+        log.info(`[CODE-EDIT] Code request detected`);
+
+        this.postMessage({
+          type: 'chat/stream',
+          payload: { id, delta: '🔧 代码编辑模式启动...\n' },
+        });
+
+        try {
+          // 显示步骤
+          this.postMessage({
+            type: 'chat/stream',
+            payload: { id, delta: '\n📋 分析流程：\n' },
+          });
+
+          this.postMessage({
+            type: 'chat/stream',
+            payload: { id, delta: '1️⃣  收集代码上下文...\n' },
+          });
+
+          this.postMessage({
+            type: 'chat/stream',
+            payload: { id, delta: '2️⃣  构建提示词...\n' },
+          });
+
+          this.postMessage({
+            type: 'chat/stream',
+            payload: { id, delta: '3️⃣  调用 AI 生成 diff...\n' },
+          });
+
+          const analyzeResult = await this.codeEditAgent.analyze({
+            userText: text,
+            currentFilePath,
+            provider: this.localProvider,
+            model: this.localModel,
+          });
+
+          if (analyzeResult.success && analyzeResult.diffs && analyzeResult.diffs.length > 0) {
+            log.info(`[CODE-EDIT] ✅ Generated ${analyzeResult.diffs.length} diffs`);
+
+            this.postMessage({
+              type: 'chat/stream',
+              payload: { id, delta: '\n✅ 成功生成修改建议：\n\n' },
+            });
+
+            // 显示修改摘要
+            for (const diff of analyzeResult.diffs) {
+              const fileName = diff.filePath.split(/[\\/]/).pop() || diff.filePath;
+              this.postMessage({
+                type: 'chat/stream',
+                payload: {
+                  id,
+                  delta: `  📝 ${fileName}: +${diff.addedLines}/-${diff.removedLines}\n`,
+                },
+              });
+            }
+
+            this.postMessage({
+              type: 'chat/stream',
+              payload: { id, delta: '\n等待你的确认...\n' },
+            });
+
+            // 保存待应用的 diff
+            this.pendingDiffs = { messageId: id, diffs: analyzeResult.diffs };
+
+            // 发送 diff 预览给 WebView
+            this.postMessage({
+              type: 'code/diffPreview',
+              payload: {
+                messageId: id,
+                diffs: analyzeResult.diffs,
+              },
+            });
+
+            log.info(`[CODE-EDIT] Diff preview sent to WebView`);
+          } else if (!analyzeResult.success) {
+            log.warn(`[CODE-EDIT] ✗ Analysis failed: ${analyzeResult.error}`);
+
+            this.postMessage({
+              type: 'chat/stream',
+              payload: {
+                id,
+                delta: `\n❌ 代码分析失败：${analyzeResult.error}\n\n您可以尝试用普通聊天提问。\n`,
+              },
+            });
+
+            this.postMessage({ type: 'chat/done', payload: { id } });
+          } else {
+            log.warn(`[CODE-EDIT] No diffs generated`);
+
+            this.postMessage({
+              type: 'chat/stream',
+              payload: {
+                id,
+                delta: '\nℹ️  AI 认为无需修改代码。\n',
+              },
+            });
+
+            this.postMessage({ type: 'chat/done', payload: { id } });
+          }
+        } catch (agentErr: unknown) {
+          const agentMessage = agentErr instanceof Error ? agentErr.message : String(agentErr);
+          log.error(`[CODE-EDIT] Error: ${agentMessage}`);
+
+          this.postMessage({
+            type: 'chat/stream',
+            payload: { id, delta: `\n❌ 代码编辑出错：${agentMessage}\n` },
+          });
+
           this.postMessage({ type: 'chat/done', payload: { id } });
-        } else if (chunk.type === 'error') {
-          this.postMessage({ type: 'chat/error', payload: { id, message: chunk.error ?? 'Unknown error' } });
+        }
+      } else {
+        // 普通聊天请求
+        log.info(`[CHAT] Regular chat message`);
+
+        let chatText = text;
+        if (currentFilePath) {
+          const fileName = currentFilePath.split(/[\\/]/).pop() || 'unknown';
+          chatText = `${text}\n\n[System: Current file: ${fileName}]`;
+          log.info(`[CHAT] Added file context hint for: ${fileName}`);
+        }
+
+        let fullResponse = '';
+        for await (const chunk of this.chatController.sendMessage(chatText, images, this.localProvider, this.localModel)) {
+          if (chunk.type === 'delta') {
+            fullResponse += chunk.content ?? '';
+            this.postMessage({ type: 'chat/stream', payload: { id, delta: chunk.content ?? '' } });
+          } else if (chunk.type === 'done') {
+            this.postMessage({ type: 'chat/done', payload: { id } });
+          } else if (chunk.type === 'error') {
+            this.postMessage({ type: 'chat/error', payload: { id, message: chunk.error ?? 'Unknown error' } });
+          }
         }
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      log.error(`[CHAT] Error: ${message}`);
       this.postMessage({ type: 'chat/error', payload: { id, message } });
     }
   }
+
 
   private getHtml(webview: vscode.Webview): string {
     const isDev = process.env.VITE_DEV === 'true';

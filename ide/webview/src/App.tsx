@@ -2,6 +2,26 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { postMessage } from './vscode';
 import { MarkdownRenderer } from './MarkdownRenderer';
 
+interface DiffLine {
+  type: 'context' | 'add' | 'remove';
+  content: string;
+}
+
+interface DiffHunk {
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
+  lines: DiffLine[];
+}
+
+interface CodeDiff {
+  filePath: string;
+  hunks: DiffHunk[];
+  addedLines: number;
+  removedLines: number;
+}
+
 interface InitPayload {
   theme: 'light' | 'dark';
   config?: { provider: string; model: string };
@@ -94,6 +114,9 @@ export default function App() {
   const [testMessages, setTestMessages] = useState<Record<string, string>>({});
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
   const [systemPrompt, setSystemPrompt] = useState<string>('You are a helpful AI assistant. Help the user with their coding questions and tasks.');
+  const [currentFile, setCurrentFile] = useState<{ fileName: string | null; filePath: string | null; exists: boolean }>({ fileName: null, filePath: null, exists: false });
+  const [pendingOperationButtons, setPendingOperationButtons] = useState<{ id: string; buttons: Array<{ id: string; label: string; action: string; style: string }> } | null>(null);
+  const [pendingDiffs, setPendingDiffs] = useState<{ messageId: string; diffs: CodeDiff[] } | null>(null);
 
   const messages = currentConv?.messages || [];
 
@@ -231,6 +254,9 @@ export default function App() {
           setMessages([]);
           setIsLoading(false);
           break;
+        case 'chat/operationButtons':
+          setPendingOperationButtons(msg.payload as any);
+          break;
         case 'settings/providers':
           setProvidersConfig(msg.payload as AllProvidersConfig);
           setPage('settings');
@@ -257,6 +283,37 @@ export default function App() {
               postMessage({ type: 'settings/getProviders' });
             }, 800);
           }
+          break;
+        }
+        case 'current_file_changed': {
+          const payload = msg.payload as { filePath: string | null; fileName: string | null; exists: boolean };
+          setCurrentFile({
+            fileName: payload.fileName,
+            filePath: payload.filePath,
+            exists: payload.exists,
+          });
+          break;
+        }
+        case 'code/diffPreview': {
+          const payload = msg.payload as { messageId: string; diffs: CodeDiff[] };
+          setPendingDiffs({ messageId: payload.messageId, diffs: payload.diffs });
+          break;
+        }
+        case 'code/applyResult': {
+          const payload = msg.payload as { success: boolean; appliedFiles?: string[]; error?: string };
+          if (payload.success) {
+            setMessages((prev) => [
+              ...prev,
+              { id: `msg-${Date.now()}`, role: 'assistant', content: `✅ Changes applied successfully to ${payload.appliedFiles?.length || 0} file(s)`, timestamp: Date.now() },
+            ]);
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              { id: `msg-${Date.now()}`, role: 'assistant', content: `❌ Failed to apply changes: ${payload.error}`, timestamp: Date.now() },
+            ]);
+          }
+          setPendingDiffs(null);
+          setIsLoading(false);
           break;
         }
       }
@@ -476,6 +533,11 @@ export default function App() {
       <div style={{ padding: '10px 16px', borderBottom: `1px solid ${borderColor}`, backgroundColor: headerBg, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: '0 0 2px 0', fontSize: '15px', fontWeight: 600 }}>AI Agent</h2>
+          {currentFile.exists && currentFile.fileName && (
+            <div style={{ fontSize: '11px', opacity: 0.7, color: theme === 'dark' ? '#4ec9b0' : '#0078d4', marginBottom: '4px' }}>
+              📄 {currentFile.fileName}
+            </div>
+          )}
           {config && (
             <div style={{ fontSize: '11px', opacity: 0.6 }}>
               {config.provider} / {config.model}
@@ -582,6 +644,60 @@ export default function App() {
             </button>
           </div>
         )}
+
+        {/* Diff Preview */}
+        {pendingDiffs && (
+          <DiffPreview
+            diffs={pendingDiffs.diffs}
+            theme={theme}
+            onApply={() => {
+              postMessage({ type: 'code/applyDiffs', payload: { messageId: pendingDiffs.messageId } });
+            }}
+            onReject={() => {
+              postMessage({ type: 'code/rejectDiffs', payload: { messageId: pendingDiffs.messageId } });
+              setPendingDiffs(null);
+            }}
+          />
+        )}
+
+        {/* Operation Buttons (legacy) */}
+        {pendingOperationButtons && !pendingDiffs && (
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap', padding: '12px', borderRadius: '6px', backgroundColor: theme === 'dark' ? '#1a1a2e' : '#f6f8fa' }}>
+            {pendingOperationButtons.buttons.map((btn) => {
+              const styleMap: Record<string, { bg: string; color: string }> = {
+                success: { bg: '#28a745', color: 'white' },
+                danger: { bg: '#dc3545', color: 'white' },
+                warning: { bg: '#ffc107', color: 'black' },
+              };
+              const btnStyle = styleMap[btn.style] || styleMap.success;
+              return (
+                <button
+                  key={btn.id}
+                  onClick={() => {
+                    postMessage({ type: btn.action as any, payload: {} });
+                    setPendingOperationButtons(null);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: btnStyle.bg,
+                    color: btnStyle.color,
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '13px',
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.8')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                >
+                  {btn.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -1040,6 +1156,158 @@ function ProviderCard({ provider, isActive, activeModel, theme, cardBg, borderCo
         {onDelete && !isActive && (
           <button type="button" onClick={() => onDelete(provider.id)} style={{ ...smallBtnStyle(borderColor, textColor), color: '#f48771', borderColor: '#f48771' }}>Delete</button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// DiffPreview component
+function DiffPreview({ diffs, theme, onApply, onReject }: { diffs: CodeDiff[]; theme: 'light' | 'dark'; onApply: () => void; onReject: () => void }) {
+  const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
+
+  const toggleFile = (filePath: string) => {
+    setExpandedFiles((prev) => ({ ...prev, [filePath]: !prev[filePath] }));
+  };
+
+  const bgColor = theme === 'dark' ? '#1e1e1e' : '#ffffff';
+  const textColor = theme === 'dark' ? '#e0e0e0' : '#333333';
+  const borderColor = theme === 'dark' ? '#404040' : '#e0e0e0';
+  const headerBg = theme === 'dark' ? '#252526' : '#f3f3f3';
+  const addBg = theme === 'dark' ? 'rgba(40, 167, 69, 0.15)' : 'rgba(40, 167, 69, 0.1)';
+  const removeBg = theme === 'dark' ? 'rgba(220, 53, 69, 0.15)' : 'rgba(220, 53, 69, 0.1)';
+
+  return (
+    <div style={{ marginTop: '12px', padding: '12px', borderRadius: '6px', backgroundColor: headerBg, border: `1px solid ${borderColor}` }}>
+      <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px', color: textColor }}>📝 Code Changes Preview</div>
+
+      {diffs.map((diff) => (
+        <div key={diff.filePath} style={{ marginBottom: '12px' }}>
+          {/* File Header */}
+          <div
+            onClick={() => toggleFile(diff.filePath)}
+            style={{
+              padding: '8px 10px',
+              backgroundColor: '#1e5a96',
+              color: '#fff',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 500,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              userSelect: 'none',
+            }}
+          >
+            <span>
+              {diff.filePath} <span style={{ opacity: 0.7, marginLeft: '8px' }}>+{diff.addedLines} -{diff.removedLines}</span>
+            </span>
+            <span>{expandedFiles[diff.filePath] ? '▼' : '▶'}</span>
+          </div>
+
+          {/* Diff Content */}
+          {expandedFiles[diff.filePath] && (
+            <div
+              style={{
+                marginTop: '6px',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                border: `1px solid ${borderColor}`,
+              }}
+            >
+              {diff.hunks.map((hunk, hunkIdx) => (
+                <div key={hunkIdx}>
+                  {/* Hunk Header */}
+                  <div
+                    style={{
+                      padding: '6px 10px',
+                      backgroundColor: '#4a4a5e',
+                      color: '#dcdcaa',
+                      fontSize: '10px',
+                      borderBottom: `1px solid ${borderColor}`,
+                    }}
+                  >
+                    @@ -{hunk.oldStart},{hunk.oldCount} +{hunk.newStart},{hunk.newCount} @@
+                  </div>
+
+                  {/* Hunk Lines */}
+                  <div>
+                    {hunk.lines.map((line, lineIdx) => {
+                      let lineBg = 'transparent';
+                      let lineColor = textColor;
+                      let linePrefix = ' ';
+
+                      if (line.type === 'add') {
+                        lineBg = addBg;
+                        lineColor = '#4ec9b0';
+                        linePrefix = '+';
+                      } else if (line.type === 'remove') {
+                        lineBg = removeBg;
+                        lineColor = '#f48771';
+                        linePrefix = '-';
+                      } else {
+                        linePrefix = ' ';
+                      }
+
+                      return (
+                        <div
+                          key={lineIdx}
+                          style={{
+                            padding: '2px 10px',
+                            backgroundColor: lineBg,
+                            color: lineColor,
+                            borderLeft: line.type === 'add' ? '3px solid #4ec9b0' : line.type === 'remove' ? '3px solid #f48771' : '3px solid transparent',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-all',
+                          }}
+                        >
+                          {linePrefix}
+                          {line.content}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+        <button
+          onClick={onApply}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#28a745',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: '12px',
+          }}
+        >
+          ✅ Apply Changes
+        </button>
+        <button
+          onClick={onReject}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#dc3545',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: '12px',
+          }}
+        >
+          ❌ Reject
+        </button>
       </div>
     </div>
   );

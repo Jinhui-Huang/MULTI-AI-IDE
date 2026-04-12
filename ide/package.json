@@ -54,6 +54,14 @@
         "command": "aiAgent.openSettings",
         "title": "AI: Open Right Chat",
         "icon": "$(hubot)"
+      },
+      {
+        "command": "aiAgent.openAgentConsole",
+        "title": "Agent: Open Console"
+      },
+      {
+        "command": "aiAgent.openDevAgentPanel",
+        "title": "Agent: Open Dev Agent (NEW)"
       }
     ],
     "menus": {

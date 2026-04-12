@@ -186,7 +186,14 @@ export class ConfigManager {
 
   async getSystemPrompt(): Promise<string> {
     const stored = this.context.globalState.get<string>('aiAgent.systemPrompt');
-    return stored || 'You are a helpful AI assistant. Help the user with their coding questions and tasks.';
+    return stored || `You are a helpful AI assistant for coding tasks.
+
+When user asks to see file content, respond with:
+READ_FILE: filename
+
+Example: User asks "show me app.ts" → You respond: "I'll read that file. READ_FILE: app.ts"
+
+The system will automatically read and display the file content.`;
   }
 
   async setSystemPrompt(prompt: string): Promise<void> {

@@ -4,6 +4,7 @@ import { RightChatPanelProvider } from './chat/rightChatPanelProvider';
 import { registerCommands } from './commands';
 import { createLogger } from './core/logger';
 import { ConfigManager } from './core/config';
+import { runAutomatedTests } from './chat/chatViewProvider.test';
 
 const log = createLogger('extension');
 
@@ -13,6 +14,12 @@ export function activate(context: vscode.ExtensionContext) {
   const configManager = ConfigManager.initialize(context);
   const config = configManager.getConfig();
   log.info(`Config loaded: provider=${config.provider}, model=${config.model}`);
+
+  // 运行自动化测试
+  log.info('Running automated tests...');
+  runAutomatedTests().catch((err) => {
+    log.error(`Automated tests failed: ${err}`);
+  });
 
   configManager.migrateOldApiKey().catch((err) => {
     log.error(`Migration failed: ${err}`);

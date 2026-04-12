@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { ChatViewProvider } from '../chat/chatViewProvider';
 import { RightChatPanelProvider } from '../chat/rightChatPanelProvider';
 import { ConfigManager } from '../core/config';
+import { registerAgentConsoleCommand } from './agentConsole';
+import { registerDevAgentPanelCommand } from './devAgentPanel';
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -29,4 +31,10 @@ export function registerCommands(
       await RightChatPanelProvider.createOrShow(context.extensionUri);
     }),
   );
+
+  // Register Agent Console command (old)
+  registerAgentConsoleCommand(context);
+
+  // Register Dev Agent Panel command (new)
+  registerDevAgentPanelCommand(context);
 }
