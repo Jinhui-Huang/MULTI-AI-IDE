@@ -1,0 +1,4 @@
+.env
+.bridge.pid
+codex-audit.log
+node_modules/

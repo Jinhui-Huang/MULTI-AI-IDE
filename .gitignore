@@ -46,3 +46,4 @@ target/
 # Test outputs
 playwright-report/
 test-results/
+test_workspace/

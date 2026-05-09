@@ -1,8 +1,0 @@
-packages:
-  - "ide"
-  - "ide/webview"
-  - "agent-core"
-  - "ai-gateway"
-  - "code-indexer"
-  - "vector-store"
-  - "telegram-bridge"
