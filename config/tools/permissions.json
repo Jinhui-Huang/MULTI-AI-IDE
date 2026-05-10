@@ -1,0 +1,13 @@
+{
+  "developer_agent": {
+    "read_file": "allow",
+    "search_code": "allow",
+    "propose_patch": "allow",
+    "apply_patch": "confirm",
+    "run_command": "deny"
+  },
+  "tester_agent": {
+    "run_command": "confirm",
+    "read_terminal": "allow"
+  }
+}

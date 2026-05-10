@@ -1,0 +1,7 @@
+.vscode/**
+node_modules/**
+src/**
+agent-service/.venv/**
+**/*.map
+**/__pycache__/**
+.pytest_cache/**

@@ -1,0 +1,10 @@
+[
+  "mvn test",
+  "mvn -q test",
+  "gradle test",
+  "npm test",
+  "npm run build",
+  "pnpm test",
+  "pnpm build",
+  "python -m pytest"
+]

@@ -1,0 +1,16 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import { spawn } from 'child_process';
+import { ConfigStore } from '../storage/ConfigStore';
+export class ToolRouter {
+  constructor(private context: vscode.ExtensionContext, private output: vscode.OutputChannel, private config: ConfigStore) {}
+  async handle(url: string, body: any): Promise<any> { const tool = url.replace('/tools/','').replace(/^\//,''); switch(tool) { case 'list_files': return this.listFiles(body.path || '.'); case 'read_file': return this.readFile(body.path); case 'search_code': return this.exec('rg', ['--line-number', body.query || '', '.']); case 'git_diff': return this.exec('git', ['diff']); case 'git_status': return this.exec('git', ['status','--short']); case 'run_command': return this.runCommand(body.command); default: throw new Error('Unknown tool: ' + tool); } }
+  private root(): string { const r = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath; if (!r) throw new Error('No workspace opened'); return r; }
+  private safe(rel: string): string { const root = path.resolve(this.root()); const target = path.resolve(root, rel || '.'); if (!target.startsWith(root)) throw new Error('Path outside workspace denied'); if (['.env','id_rsa','.pem','credentials.json'].some(x => target.includes(x))) throw new Error('Sensitive file denied'); return target; }
+  private async listFiles(rel: string): Promise<any> { const base = this.safe(rel); const files: string[] = []; async function walk(d: string, root: string) { for (const e of await fs.readdir(d, {withFileTypes:true})) { if (['.git','node_modules','dist','target','build'].includes(e.name)) continue; const full = path.join(d,e.name); if (e.isDirectory()) await walk(full,root); else files.push(path.relative(root, full)); if (files.length >= 500) return; }} await walk(base, this.root()); return { files, truncated: files.length >= 500 }; }
+  private async readFile(rel: string): Promise<any> { const f = this.safe(rel); const stat = await fs.stat(f); if (stat.size > 512000) throw new Error('File too large'); return { path: rel, content: await fs.readFile(f, 'utf8') }; }
+  private async runCommand(command: string): Promise<any> { if (![/^mvn(\s|$)/,/^npm\s+(test|run build)$/,/^pnpm\s+(test|build)$/,/^python\s+-m\s+pytest/].some(r => r.test(command))) throw new Error('Command not allowlisted: ' + command); return this.execShell(command); }
+  private exec(command: string, args: string[]): Promise<any> { return new Promise(resolve => { const p = spawn(command, args, { cwd: this.root(), shell: false }); let stdout='', stderr=''; p.stdout.on('data', d=>stdout+=d.toString()); p.stderr.on('data', d=>stderr+=d.toString()); p.on('close', code=>resolve({ command: [command,...args].join(' '), exitCode: code, stdout: stdout.slice(0,20000), stderr: stderr.slice(0,20000) })); }); }
+  private execShell(command: string): Promise<any> { return new Promise(resolve => { const p = spawn(command, { cwd: this.root(), shell: true }); let stdout='', stderr=''; p.stdout.on('data', d=>stdout+=d.toString()); p.stderr.on('data', d=>stderr+=d.toString()); p.on('close', code=>resolve({ command, exitCode: code, stdout: stdout.slice(0,20000), stderr: stderr.slice(0,20000) })); }); }
+}

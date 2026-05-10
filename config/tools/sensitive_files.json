@@ -1,0 +1,7 @@
+[
+  ".env",
+  "*.pem",
+  "id_rsa",
+  "credentials.json",
+  "application-prod.yml"
+]

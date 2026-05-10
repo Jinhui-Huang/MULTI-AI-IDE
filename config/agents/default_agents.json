@@ -1,0 +1,58 @@
+{
+  "agents": [
+    {
+      "id": "planner_agent",
+      "name": "PlannerAgent",
+      "role": "planner",
+      "model": "gpt-4.1-mini",
+      "tools": [],
+      "maxTurns": 2
+    },
+    {
+      "id": "codebase_agent",
+      "name": "CodebaseAgent",
+      "role": "codebase",
+      "model": "gpt-4.1-mini",
+      "tools": [
+        "list_files",
+        "read_file",
+        "search_code"
+      ],
+      "maxTurns": 5
+    },
+    {
+      "id": "developer_agent",
+      "name": "DeveloperAgent",
+      "role": "developer",
+      "model": "gpt-4.1",
+      "tools": [
+        "read_file",
+        "search_code",
+        "propose_patch"
+      ],
+      "maxTurns": 8
+    },
+    {
+      "id": "reviewer_agent",
+      "name": "ReviewerAgent",
+      "role": "reviewer",
+      "model": "gpt-4.1-mini",
+      "tools": [
+        "read_file",
+        "git_diff"
+      ],
+      "maxTurns": 4
+    },
+    {
+      "id": "tester_agent",
+      "name": "TesterAgent",
+      "role": "tester",
+      "model": "gpt-4.1-mini",
+      "tools": [
+        "run_command",
+        "read_terminal"
+      ],
+      "maxTurns": 4
+    }
+  ]
+}

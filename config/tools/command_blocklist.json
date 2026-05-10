@@ -1,0 +1,12 @@
+[
+  "rm",
+  "del",
+  "format",
+  "curl",
+  "wget",
+  "ssh",
+  "scp",
+  "git push",
+  "npm publish",
+  "powershell"
+]

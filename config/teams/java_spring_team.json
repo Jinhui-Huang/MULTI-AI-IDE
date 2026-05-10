@@ -1,0 +1,14 @@
+{
+  "id": "java-spring-team",
+  "name": "Java Spring Boot Team",
+  "mode": "sequential",
+  "maxTurns": 20,
+  "agents": [
+    "planner_agent",
+    "codebase_agent",
+    "developer_agent",
+    "reviewer_agent",
+    "tester_agent"
+  ],
+  "termination": "workflow_complete_or_cancelled"
+}

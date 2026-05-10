@@ -1,0 +1,9 @@
+{
+  "id": "explain-code-team",
+  "name": "Explain Code Team",
+  "mode": "sequential",
+  "agents": [
+    "codebase_agent",
+    "summary_agent"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "code-edit",
+  "name": "Code Edit Workflow",
+  "version": "1.0.0",
+  "nodes": [
+    {
+      "id": "planner",
+      "type": "agent",
+      "agentId": "planner_agent"
+    },
+    {
+      "id": "plan_approval",
+      "type": "human_approval",
+      "approvalType": "plan"
+    },
+    {
+      "id": "codebase",
+      "type": "agent",
+      "agentId": "codebase_agent"
+    },
+    {
+      "id": "developer",
+      "type": "agent",
+      "agentId": "developer_agent"
+    },
+    {
+      "id": "reviewer",
+      "type": "agent",
+      "agentId": "reviewer_agent"
+    },
+    {
+      "id": "patch_approval",
+      "type": "human_approval",
+      "approvalType": "patch"
+    },
+    {
+      "id": "tester",
+      "type": "agent",
+      "agentId": "tester_agent"
+    }
+  ]
+}

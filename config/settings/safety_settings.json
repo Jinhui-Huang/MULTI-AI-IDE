@@ -1,0 +1,7 @@
+{
+  "denyOutsideWorkspace": true,
+  "denyDirectWrite": true,
+  "forcePatchApproval": true,
+  "forceCommandApproval": true,
+  "globallyDisableDangerousTools": true
+}

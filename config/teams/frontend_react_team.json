@@ -1,0 +1,12 @@
+{
+  "id": "frontend-react-team",
+  "name": "Frontend React Team",
+  "mode": "sequential",
+  "agents": [
+    "planner_agent",
+    "codebase_agent",
+    "developer_agent",
+    "reviewer_agent",
+    "tester_agent"
+  ]
+}

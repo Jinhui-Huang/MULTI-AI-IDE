@@ -1,0 +1,9 @@
+{
+  "runtimeProvider": "autogen",
+  "serviceUrl": "http://127.0.0.1:8765",
+  "host": "127.0.0.1",
+  "port": 8765,
+  "pythonPath": "python",
+  "logLevel": "info",
+  "useSecretStorage": true
+}
