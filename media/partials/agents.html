@@ -1,0 +1,220 @@
+<section class="panel" data-panel="agents">
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.registry.eyebrow">Agent registry</p>
+        <h2 data-i18n="agents.title">Agents</h2>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="agent.create" data-i18n="agents.create">Create Agent</button>
+        <button class="btn" type="button" data-action="agent.import" data-i18n="agents.import">Import Agent</button>
+      </div>
+    </div>
+    <div class="card-body entity-grid">
+      <div class="entity-card">
+        <strong>PlannerAgent</strong>
+        <p data-i18n="agents.planner.description">Breaks user request into an executable plan.</p>
+        <span class="pill">gpt-4.1</span>
+        <span class="pill green" data-i18n="common.enabled">enabled</span>
+      </div>
+      <div class="entity-card">
+        <strong>CodebaseAgent</strong>
+        <p data-i18n="agents.codebase.description">Reads project context and summarizes related files.</p>
+        <span class="pill">gpt-4.1-mini</span>
+        <span class="pill green" data-i18n="common.enabled">enabled</span>
+      </div>
+      <div class="entity-card">
+        <strong>DeveloperAgent</strong>
+        <p data-i18n="agents.developer.description">Drafts patch proposals from approved plans.</p>
+        <span class="pill">qwen2.5-coder:7b</span>
+        <span class="pill green" data-i18n="common.enabled">enabled</span>
+      </div>
+      <div class="entity-card">
+        <strong>ReviewerAgent</strong>
+        <p data-i18n="agents.reviewer.description">Reviews generated changes before approval.</p>
+        <span class="pill">gpt-4.1</span>
+        <span class="pill green" data-i18n="common.enabled">enabled</span>
+      </div>
+      <div class="entity-card muted-card">
+        <strong>TesterAgent</strong>
+        <p data-i18n="agents.tester.description">Plans validation commands and test follow-up.</p>
+        <span class="pill">gpt-4.1-mini</span>
+        <span class="pill" data-i18n="common.disabled">disabled</span>
+      </div>
+      <div class="entity-card">
+        <strong>SummaryAgent</strong>
+        <p data-i18n="agents.summary.description">Summarizes final outcome and remaining risks.</p>
+        <span class="pill">local-openai-compatible</span>
+        <span class="pill green" data-i18n="common.enabled">enabled</span>
+      </div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.current.eyebrow">Current agent</p>
+        <h3 data-i18n="agents.editor.title">Agent Editor</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="agent.copy" data-i18n="agents.copy">Copy</button>
+        <button class="btn" type="button" data-action="agent.disable" data-i18n="agents.disable">Disable</button>
+        <button class="btn danger" type="button" data-action="agent.delete" data-i18n="agents.delete">Delete</button>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="agents.name">Name</span>
+        <input data-field="agent.name" value="DeveloperAgent">
+      </label>
+      <label class="field">
+        <span data-i18n="agents.role">Role</span>
+        <select data-field="agent.role">
+          <option value="planner">planner</option>
+          <option value="codebase">codebase</option>
+          <option value="developer" selected>developer</option>
+          <option value="reviewer">reviewer</option>
+          <option value="tester">tester</option>
+          <option value="summary">summary</option>
+          <option value="custom">custom</option>
+        </select>
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="agents.description">Description</span>
+        <textarea data-field="agent.description">Generate unified diff patch proposals from the approved plan and project context.</textarea>
+      </label>
+      <label class="field">
+        <span data-i18n="agents.model">Model</span>
+        <select data-field="agent.model">
+          <option value="gpt-4.1">gpt-4.1</option>
+          <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+          <option value="qwen2.5-coder:7b" selected>qwen2.5-coder:7b</option>
+          <option value="local-openai-compatible">local-openai-compatible</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="agents.temperature">Temperature</span>
+        <input data-field="agent.temperature" type="number" value="0.2" step="0.1" min="0">
+      </label>
+      <label class="field">
+        <span data-i18n="agents.maxTurns">Max Turns</span>
+        <input data-field="agent.maxTurns" type="number" value="8" min="1">
+      </label>
+      <label class="field">
+        <span data-i18n="agents.maxToolCalls">Max Tool Calls</span>
+        <input data-field="agent.maxToolCalls" type="number" value="20" min="0">
+      </label>
+      <label class="field">
+        <span data-i18n="agents.timeoutSeconds">Timeout Seconds</span>
+        <input data-field="agent.timeoutSeconds" type="number" value="120" min="1">
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.prompt.eyebrow">Prompt</p>
+        <h3 data-i18n="agents.prompt.title">System Prompt</h3>
+      </div>
+    </div>
+    <div class="card-body">
+      <label class="field">
+        <span data-i18n="agents.prompt.label">Prompt</span>
+        <textarea data-field="agent.systemPrompt" data-i18n-placeholder="agents.prompt.placeholder" placeholder="You are DeveloperAgent, responsible for generating unified diff patches from project context. Do not edit files directly; all changes must go through propose_patch."></textarea>
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.limits.eyebrow">Limits</p>
+        <h3 data-i18n="agents.limits.title">Response Format / Stop Condition</h3>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="agents.responseFormat">Response Format</span>
+        <select data-field="agent.responseFormat">
+          <option value="text">text</option>
+          <option value="json">json</option>
+          <option value="json_schema">json_schema</option>
+          <option value="markdown">markdown</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="agents.stopCondition">Stop Condition</span>
+        <input data-field="agent.stopCondition" value="TERMINATE">
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="agents.outputJsonSchema">Output JSON Schema</span>
+        <textarea data-field="agent.outputJsonSchema">{
+  "summary": "string",
+  "changedFiles": [],
+  "patch": "string",
+  "risk": "low|medium|high",
+  "needsApproval": true
+}</textarea>
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.tools.eyebrow">Tools</p>
+        <h3 data-i18n="agents.tools.title">Tool Selection</h3>
+      </div>
+    </div>
+    <div class="card-body checkbox-grid">
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.list_files" checked> list_files</label>
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.read_file" checked> read_file</label>
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.search_code" checked> search_code</label>
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.propose_patch" checked> propose_patch</label>
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.run_command"> run_command</label>
+      <label class="check-row"><input type="checkbox" data-field="agent.tools.git_diff" checked> git_diff</label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.context.eyebrow">Context</p>
+        <h3 data-i18n="agents.context.title">Context Scope</h3>
+      </div>
+    </div>
+    <div class="card-body checkbox-grid">
+      <label class="check-row"><input type="checkbox" data-field="agent.context.currentFile" checked> <span data-i18n="agents.context.currentFile">Current File</span></label>
+      <label class="check-row"><input type="checkbox" data-field="agent.context.selection" checked> <span data-i18n="agents.context.selection">Selection</span></label>
+      <label class="check-row"><input type="checkbox" data-field="agent.context.gitDiff" checked> <span data-i18n="agents.context.gitDiff">Git Diff</span></label>
+      <label class="check-row"><input type="checkbox" data-field="agent.context.terminalError"> <span data-i18n="agents.context.terminalError">Terminal Error</span></label>
+      <label class="check-row"><input type="checkbox" data-field="agent.context.projectSummary" checked> <span data-i18n="agents.context.projectSummary">Project Summary</span></label>
+      <label class="check-row"><input type="checkbox" data-field="agent.context.ragResults"> <span data-i18n="agents.context.ragResults">RAG Results</span></label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.actions.eyebrow">Actions</p>
+        <h3 data-i18n="agents.actions.title">Agent Operations</h3>
+      </div>
+    </div>
+    <div class="card-body action-grid">
+      <button class="btn" type="button" data-action="agent.reset" data-i18n="agents.reset">Reset</button>
+      <button class="primary-action" type="button" data-action="agent.save" data-i18n="agents.save">Save Agent</button>
+      <button class="btn green" type="button" data-action="agent.test" data-i18n="agents.test">Test Agent</button>
+    </div>
+  </article>
+
+  <article class="section-card log-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="agents.log.eyebrow">Events</p>
+        <h3 data-i18n="agents.log.title">Agents Log</h3>
+      </div>
+    </div>
+    <div class="log" data-event-log aria-live="polite"></div>
+  </article>
+</section>

@@ -12,7 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:autogenAgent.controlPanel",
+    "onStartupFinished",
     "onCommand:autogenAgent.openPanel",
     "onCommand:autogenAgent.startTask"
   ],
@@ -21,27 +21,19 @@
     "commands": [
       {
         "command": "autogenAgent.openPanel",
-        "title": "AutoGen Code Agent: Open Panel"
+        "title": "AutoGen Code Agent: Open Panel",
+        "icon": "$(sparkle)"
       },
       {
         "command": "autogenAgent.startTask",
         "title": "AutoGen Code Agent: Start Task"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
+    "menus": {
+      "editor/title": [
         {
-          "id": "autogenAgent",
-          "title": "AutoGen",
-          "icon": "media/icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "autogenAgent": [
-        {
-          "id": "autogenAgent.controlPanel",
-          "name": "AutoGen Control"
+          "command": "autogenAgent.openPanel",
+          "group": "navigation@99"
         }
       ]
     },

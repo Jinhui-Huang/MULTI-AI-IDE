@@ -1,0 +1,49 @@
+.mono-textarea {
+  min-height: 132px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.tall-textarea {
+  min-height: 260px;
+}
+
+.matrix-scroll {
+  overflow-x: auto;
+}
+
+.permission-matrix {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.permission-matrix th,
+.permission-matrix td {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 6px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.permission-matrix thead th {
+  color: var(--faint);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.permission-matrix tbody th {
+  color: var(--text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.permission-matrix select {
+  min-width: 106px;
+  min-height: 30px;
+  border-radius: 9px;
+  padding: 5px 7px;
+  font-size: 11px;
+}
+

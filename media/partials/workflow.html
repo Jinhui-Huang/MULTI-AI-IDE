@@ -1,0 +1,217 @@
+<section class="panel" data-panel="workflow">
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.orchestration.eyebrow">Orchestration</p>
+        <h2 data-i18n="workflow.title">Workflow</h2>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="workflow.save" data-i18n="workflow.save">Save Workflow</button>
+        <button class="btn" type="button" data-action="workflow.saveAsTemplate" data-i18n="workflow.saveTemplate">Save Template</button>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="workflow.name">Name</span>
+        <input data-field="workflow.name" value="Code Edit Workflow">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.type">Type</span>
+        <select data-field="workflow.type">
+          <option value="code_edit" selected>code_edit</option>
+          <option value="bug_fix">bug_fix</option>
+          <option value="test_generation">test_generation</option>
+          <option value="explain_code">explain_code</option>
+          <option value="custom">custom</option>
+        </select>
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="workflow.description">Description</span>
+        <textarea data-field="workflow.description">Code edit flow: Planner creates a plan, Codebase analyzes context, Developer proposes a patch, Reviewer checks it, Human Approval confirms it, Tester validates, and Summary reports outcome.</textarea>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.failureStrategy">Failure Strategy</span>
+        <select data-field="workflow.failureStrategy">
+          <option value="stop">stop</option>
+          <option value="retry_current_node" selected>retry_current_node</option>
+          <option value="fallback_to_developer">fallback_to_developer</option>
+          <option value="ask_user">ask_user</option>
+          <option value="continue_next">continue_next</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.retryLimit">Retry Limit</span>
+        <input data-field="workflow.retryLimit" type="number" value="2" min="0">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.nodeTimeoutSeconds">Node Timeout Seconds</span>
+        <input data-field="workflow.nodeTimeoutSeconds" type="number" value="180" min="1">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.confirmPolicy">Confirm Policy</span>
+        <select data-field="workflow.confirmPolicy">
+          <option value="always_confirm_patch">always_confirm_patch</option>
+          <option value="confirm_plan_and_patch" selected>confirm_plan_and_patch</option>
+          <option value="confirm_dangerous_only">confirm_dangerous_only</option>
+          <option value="no_confirm">no_confirm</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.jsonVersion">JSON Version</span>
+        <input data-field="workflow.jsonVersion" value="1">
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.nodes.eyebrow">Nodes</p>
+        <h3 data-i18n="workflow.nodes.title">Workflow Nodes</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="workflow.node.addAgent" data-i18n="workflow.addAgentNode">Add Agent Node</button>
+        <button class="btn" type="button" data-action="workflow.node.addHumanApproval" data-i18n="workflow.addApproval">Add Approval</button>
+        <button class="btn" type="button" data-action="workflow.node.addCondition" data-i18n="workflow.addCondition">Add Condition</button>
+      </div>
+    </div>
+    <div class="card-body ordered-list">
+      <div class="ordered-row"><span>1</span><strong>PlannerAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.plannerFlow">agent | input: context | output: plan</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
+      <div class="ordered-row"><span>2</span><strong data-i18n="workflow.node.planApproval">Human Approval: Plan Approval</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.planApprovalFlow">human_approval | input: plan | output: approval</p><button class="btn" type="button" data-action="workflow.node.edit" data-i18n="workflow.node.edit">Edit</button></div>
+      <div class="ordered-row"><span>3</span><strong>CodebaseAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.codebaseFlow">agent | input: context / plan | output: codebaseSummary</p><button class="btn" type="button" data-action="workflow.node.addAfter" data-i18n="workflow.node.addAfter">Add After</button></div>
+      <div class="ordered-row"><span>4</span><strong>DeveloperAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.developerFlow">agent | input: plan / codebaseSummary | output: patch</p><button class="btn" type="button" data-action="workflow.node.moveUp" data-i18n="workflow.node.moveUp">Move Up</button></div>
+      <div class="ordered-row"><span>5</span><strong>ReviewerAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.reviewerFlow">agent | input: patch | output: reviewResult</p><button class="btn" type="button" data-action="workflow.node.moveDown" data-i18n="workflow.node.moveDown">Move Down</button></div>
+      <div class="ordered-row"><span>6</span><strong data-i18n="workflow.node.patchApproval">Human Approval: Patch Approval</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.patchApprovalFlow">human_approval | input: patch / review | output: approval</p><button class="btn danger" type="button" data-action="workflow.node.delete" data-i18n="workflow.node.delete">Delete</button></div>
+      <div class="ordered-row"><span>7</span><strong>TesterAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.testerFlow">agent | input: patch / reviewResult | output: testResult</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
+      <div class="ordered-row"><span>8</span><strong>SummaryAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.summaryFlow">agent | input: testResult / reviewResult | output: summary</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.detail.eyebrow">Node detail</p>
+        <h3 data-i18n="workflow.detail.title">Selected Node</h3>
+      </div>
+      <button class="btn green" type="button" data-action="workflow.node.edit" data-i18n="workflow.editNode">Edit Node</button>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="workflow.nodeId">Node ID</span>
+        <input data-field="workflow.node.id" value="developer">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.nodeName">Node Name</span>
+        <input data-field="workflow.node.name" value="DeveloperAgent">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.nodeType">Node Type</span>
+        <select data-field="workflow.node.type">
+          <option value="agent" selected>agent</option>
+          <option value="human_approval">human_approval</option>
+          <option value="condition">condition</option>
+          <option value="tool">tool</option>
+          <option value="summary">summary</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.agentId">Agent ID</span>
+        <select data-field="workflow.node.agentId">
+          <option value="PlannerAgent">PlannerAgent</option>
+          <option value="CodebaseAgent">CodebaseAgent</option>
+          <option value="DeveloperAgent" selected>DeveloperAgent</option>
+          <option value="ReviewerAgent">ReviewerAgent</option>
+          <option value="TesterAgent">TesterAgent</option>
+          <option value="SummaryAgent">SummaryAgent</option>
+        </select>
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="workflow.inputFields">Input Fields</span>
+        <textarea class="mono-textarea" data-field="workflow.node.inputFields">plan
+codebaseSummary
+relatedFiles</textarea>
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="workflow.outputFields">Output Fields</span>
+        <textarea class="mono-textarea" data-field="workflow.node.outputFields">patch
+changedFiles
+risk</textarea>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.onFailure">On Failure</span>
+        <select data-field="workflow.node.onFailure">
+          <option value="stop">stop</option>
+          <option value="retry" selected>retry</option>
+          <option value="skip">skip</option>
+          <option value="fallback_to_developer">fallback_to_developer</option>
+          <option value="ask_user">ask_user</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.maxRetries">Max Retries</span>
+        <input data-field="workflow.node.maxRetries" type="number" value="2" min="0">
+      </label>
+      <label class="field">
+        <span data-i18n="workflow.timeoutSeconds">Timeout Seconds</span>
+        <input data-field="workflow.node.timeoutSeconds" type="number" value="180" min="1">
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.preview.eyebrow">Preview</p>
+        <h3 data-i18n="workflow.preview.title">Workflow JSON Preview</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="workflow.exportJson" data-i18n="workflow.exportJson">Export JSON</button>
+        <button class="btn" type="button" data-action="workflow.importJson" data-i18n="workflow.importJson">Import JSON</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea tall-textarea" data-field="workflow.jsonPreview">{
+  "id": "code_edit",
+  "name": "Code Edit Workflow",
+  "version": 1,
+  "nodes": [
+    {"id": "planner", "type": "agent", "agentId": "PlannerAgent"},
+    {"id": "plan_approval", "type": "human_approval"},
+    {"id": "codebase", "type": "agent", "agentId": "CodebaseAgent"},
+    {"id": "developer", "type": "agent", "agentId": "DeveloperAgent"},
+    {"id": "reviewer", "type": "agent", "agentId": "ReviewerAgent"},
+    {"id": "patch_approval", "type": "human_approval"},
+    {"id": "tester", "type": "agent", "agentId": "TesterAgent"},
+    {"id": "summary", "type": "agent", "agentId": "SummaryAgent"}
+  ]
+}</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.actions.eyebrow">Actions</p>
+        <h3 data-i18n="workflow.actions.title">Workflow Operations</h3>
+      </div>
+    </div>
+    <div class="card-body action-grid">
+      <button class="primary-action" type="button" data-action="workflow.save" data-i18n="workflow.save">Save Workflow</button>
+      <button class="btn" type="button" data-action="workflow.saveAsTemplate" data-i18n="workflow.saveAsTemplate">Save As Template</button>
+      <button class="btn" type="button" data-action="workflow.setDefault" data-i18n="workflow.setDefault">Set Default</button>
+      <button class="btn green" type="button" data-action="workflow.testRun" data-i18n="workflow.testRun">Test Run</button>
+      <button class="btn" type="button" data-action="workflow.exportJson" data-i18n="workflow.exportJson">Export JSON</button>
+      <button class="btn" type="button" data-action="workflow.importJson" data-i18n="workflow.importJson">Import JSON</button>
+    </div>
+  </article>
+
+  <article class="section-card log-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.log.eyebrow">Events</p>
+        <h3 data-i18n="workflow.log.title">Workflow Log</h3>
+      </div>
+    </div>
+    <div class="log" data-event-log aria-live="polite"></div>
+  </article>
+</section>

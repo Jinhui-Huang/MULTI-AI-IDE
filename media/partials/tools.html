@@ -1,0 +1,263 @@
+<section class="panel" data-panel="tools">
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.permissions.eyebrow">Permissions</p>
+        <h2 data-i18n="tools.title">Tools</h2>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="tool.permission.save" data-i18n="tools.savePermissions">Save Permissions</button>
+        <button class="btn" type="button" data-action="tool.permission.batchEdit" data-i18n="tools.batchEdit">Batch Edit</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="matrix-scroll" aria-label="Tool permission matrix">
+        <table class="permission-matrix">
+          <thead>
+            <tr>
+              <th data-i18n="tools.matrix.tool">Tool</th>
+              <th data-i18n="tools.matrix.planner">Planner</th>
+              <th data-i18n="tools.matrix.codebase">Codebase</th>
+              <th data-i18n="tools.matrix.developer">Developer</th>
+              <th data-i18n="tools.matrix.reviewer">Reviewer</th>
+              <th data-i18n="tools.matrix.tester">Tester</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>list_files</th>
+              <td><select data-field="toolPermission.Planner.list_files"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.list_files"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.list_files"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.list_files"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.list_files"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>read_file</th>
+              <td><select data-field="toolPermission.Planner.read_file"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.read_file"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.read_file"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.read_file"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.read_file"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>search_code</th>
+              <td><select data-field="toolPermission.Planner.search_code"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.search_code"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.search_code"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.search_code"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.search_code"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>propose_patch</th>
+              <td><select data-field="toolPermission.Planner.propose_patch"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.propose_patch"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.propose_patch"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.propose_patch"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.propose_patch"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>apply_patch</th>
+              <td><select data-field="toolPermission.Planner.apply_patch"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.apply_patch"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.apply_patch"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.apply_patch"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.apply_patch"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>run_command</th>
+              <td><select data-field="toolPermission.Planner.run_command"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.run_command"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.run_command"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.run_command"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.run_command"><option>deny</option><option>allow</option><option selected>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>git_diff</th>
+              <td><select data-field="toolPermission.Planner.git_diff"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.git_diff"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.git_diff"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.git_diff"><option>deny</option><option selected>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.git_diff"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+            <tr>
+              <th>git_status</th>
+              <td><select data-field="toolPermission.Planner.git_status"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Codebase.git_status"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Developer.git_status"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Reviewer.git_status"><option>deny</option><option>allow</option><option>confirm</option><option selected>readonly</option><option>whitelist</option></select></td>
+              <td><select data-field="toolPermission.Tester.git_status"><option selected>deny</option><option>allow</option><option>confirm</option><option>readonly</option><option>whitelist</option></select></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.registry.eyebrow">Registry</p>
+        <h3 data-i18n="tools.registry.title">Tool Registry</h3>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="tool.create" data-i18n="tools.create">Create Tool</button>
+        <button class="btn green" type="button" data-action="tool.test" data-i18n="tools.test">Test Tool</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="entity-grid">
+        <div class="entity-card"><strong>list_files</strong><p data-i18n="tools.listFiles.description">List workspace files.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill green" data-i18n="common.low">low</span></div>
+        <div class="entity-card"><strong>read_file</strong><p data-i18n="tools.readFile.description">Read guarded workspace file content.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill accent" data-i18n="common.medium">medium</span></div>
+        <div class="entity-card"><strong>search_code</strong><p data-i18n="tools.searchCode.description">Search source code with workspace guard.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill green" data-i18n="common.low">low</span></div>
+        <div class="entity-card"><strong>propose_patch</strong><p data-i18n="tools.proposePatch.description">Draft patch without touching files.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill accent" data-i18n="common.medium">medium</span></div>
+        <div class="entity-card"><strong>apply_patch</strong><p data-i18n="tools.applyPatch.description">Apply approved patch proposal.</p><span class="pill" data-i18n="common.disabled">disabled</span><span class="pill danger" data-i18n="common.high">high</span></div>
+        <div class="entity-card"><strong>run_command</strong><p data-i18n="tools.runCommand.description">Run approved shell command.</p><span class="pill" data-i18n="common.disabled">disabled</span><span class="pill danger" data-i18n="common.high">high</span></div>
+        <div class="entity-card"><strong>git_diff</strong><p data-i18n="tools.gitDiff.description">Inspect git diff output.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill accent" data-i18n="common.medium">medium</span></div>
+        <div class="entity-card"><strong>git_status</strong><p data-i18n="tools.gitStatus.description">Inspect git status output.</p><span class="pill green" data-i18n="common.enabled">enabled</span><span class="pill green" data-i18n="common.low">low</span></div>
+      </div>
+      <div class="form-grid">
+        <label class="field">
+          <span data-i18n="tools.name">Tool Name</span>
+          <input data-field="tool.name" value="read_file">
+        </label>
+        <label class="field wide-field">
+          <span data-i18n="tools.description">Description</span>
+          <textarea data-field="tool.description">Read file content inside the current workspace after WorkspaceGuard and sensitive file checks.</textarea>
+        </label>
+      </div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.schema.eyebrow">Schema</p>
+        <h3 data-i18n="tools.schema.title">Tool Schema</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="tool.schema.save" data-i18n="tools.saveSchema">Save Schema</button>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea" data-field="tool.schema">{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "workspace relative path"
+    }
+  },
+  "required": ["path"]
+}</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.preview.eyebrow">Preview</p>
+        <h3 data-i18n="tools.preview.title">Tool Return Preview</h3>
+      </div>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea" data-field="tool.returnPreview">{
+  "ok": true,
+  "content": "placeholder file content",
+  "metadata": {
+    "path": "pom.xml",
+    "size": 1024
+  }
+}</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.commands.eyebrow">Commands</p>
+        <h3 data-i18n="tools.allowlist.title">Command Allowlist</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="tool.allowlist.save" data-i18n="tools.saveAllowlist">Save Allowlist</button>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea" data-field="tool.commandAllowlist">mvn test
+mvn -q test
+gradle test
+npm test
+npm run build
+pnpm test
+pnpm build
+python -m pytest</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.commands.eyebrow">Commands</p>
+        <h3 data-i18n="tools.blocklist.title">Command Blocklist</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="tool.blocklist.save" data-i18n="tools.saveBlocklist">Save Blocklist</button>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea" data-field="tool.commandBlocklist">rm
+del
+format
+curl
+wget
+ssh
+scp
+git push
+npm publish
+powershell
+sudo</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.files.eyebrow">Files</p>
+        <h3 data-i18n="tools.sensitive.title">Sensitive File Blocklist</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="tool.sensitiveFiles.save" data-i18n="tools.saveSensitive">Save Sensitive Files</button>
+    </div>
+    <div class="card-body">
+      <textarea class="mono-textarea" data-field="tool.sensitiveFileBlocklist">.env
+*.pem
+id_rsa
+id_ed25519
+credentials.json
+application-prod.yml
+*.p12
+*.key</textarea>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.safety.eyebrow">Safety</p>
+        <h3 data-i18n="tools.safety.title">Global Safety</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="tool.globalSafety.save" data-i18n="tools.saveSafety">Save Safety Policy</button>
+    </div>
+    <div class="card-body checkbox-grid">
+      <label class="check-row"><input type="checkbox" data-field="safety.denyOutsideWorkspace" checked> <span data-i18n="tools.safety.denyOutsideWorkspace">Deny file access outside workspace</span></label>
+      <label class="check-row"><input type="checkbox" data-field="safety.forcePatchOnly" checked> <span data-i18n="tools.safety.forcePatchOnly">Patch-only edits through propose_patch</span></label>
+      <label class="check-row"><input type="checkbox" data-field="safety.confirmApplyPatch" checked> <span data-i18n="tools.safety.confirmApplyPatch">Require confirmation for apply_patch</span></label>
+      <label class="check-row"><input type="checkbox" data-field="safety.confirmRunCommand" checked> <span data-i18n="tools.safety.confirmRunCommand">Require confirmation for run_command</span></label>
+      <label class="check-row"><input type="checkbox" data-field="safety.denyDangerousTools" checked> <span data-i18n="tools.safety.denyDangerousTools">Deny dangerous tools globally</span></label>
+      <label class="check-row"><input type="checkbox" data-field="safety.enableToolAuditLog" checked> <span data-i18n="tools.safety.enableToolAuditLog">Record full Tool Audit Log</span></label>
+    </div>
+  </article>
+
+  <article class="section-card log-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.log.eyebrow">Events</p>
+        <h3 data-i18n="tools.log.title">Tools Log</h3>
+      </div>
+    </div>
+    <div class="log" data-event-log aria-live="polite"></div>
+  </article>
+</section>

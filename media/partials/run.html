@@ -1,0 +1,232 @@
+<section class="panel active" data-panel="run">
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.taskSetup">Task setup</p>
+              <h2 data-i18n="run.title">Run</h2>
+            </div>
+            <span class="mini-label" data-i18n="common.placeholderOnly">placeholder only</span>
+          </div>
+          <div class="card-body form-grid">
+            <label class="field">
+              <span data-i18n="run.team">Team</span>
+              <select data-field="task.teamId">
+                <option value="java-spring-team">java-spring-team</option>
+                <option value="frontend-react-team">frontend-react-team</option>
+                <option value="explain-code-team">explain-code-team</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="run.workflow">Workflow</span>
+              <select data-field="task.workflowId">
+                <option value="code-edit">code-edit</option>
+                <option value="bug-fix">bug-fix</option>
+                <option value="test-generation">test-generation</option>
+                <option value="explain-code">explain-code</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="run.mode">Mode</span>
+              <select data-field="task.mode">
+                <option value="auto">auto</option>
+                <option value="semi_auto">semi_auto</option>
+                <option value="manual">manual</option>
+              </select>
+            </label>
+            <label class="field">
+              <span data-i18n="run.targetAgent">Target Agent</span>
+              <select data-field="task.targetAgent">
+                <option value="current">current</option>
+                <option value="PlannerAgent">PlannerAgent</option>
+                <option value="CodebaseAgent">CodebaseAgent</option>
+                <option value="DeveloperAgent">DeveloperAgent</option>
+                <option value="ReviewerAgent">ReviewerAgent</option>
+                <option value="TesterAgent">TesterAgent</option>
+                <option value="SummaryAgent">SummaryAgent</option>
+              </select>
+            </label>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.request">Request</p>
+              <h3 data-i18n="run.taskInput">Task Input</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <label class="field">
+              <span data-i18n="run.userRequest">User request</span>
+              <textarea
+                data-field="task.userRequest"
+                data-i18n-placeholder="run.userRequestPlaceholder"
+                placeholder="&#24110;&#25105;&#32473;&#24403;&#21069; Spring Boot &#39033;&#30446;&#22686;&#21152; JWT &#30331;&#24405;&#25509;&#21475;"
+              ></textarea>
+            </label>
+            <div class="action-row">
+              <button class="primary-action" type="button" data-action="task.create" data-i18n="run.sendToTeam">&#21457;&#36865;&#32473; AutoGen Team</button>
+              <span id="status" class="inline-status" data-i18n="status.ready">Ready</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.controls">Controls</p>
+              <h3 data-i18n="run.executionControl">Execution Control</h3>
+            </div>
+          </div>
+          <div class="card-body action-grid">
+            <button class="btn" type="button" data-action="task.pause" data-i18n="run.pause">&#26242;&#20572;</button>
+            <button class="btn" type="button" data-action="task.resume" data-i18n="run.resume">&#32487;&#32493;</button>
+            <button class="btn danger" type="button" data-action="task.cancel" data-i18n="run.cancel">&#32456;&#27490;</button>
+            <button class="btn" type="button" data-action="task.rerunCurrentAgent" data-i18n="run.rerunCurrentAgent">&#37325;&#36305;&#24403;&#21069; Agent</button>
+            <button class="btn" type="button" data-action="task.switchAgent" data-i18n="run.switchAgent">&#20999;&#25442; Agent</button>
+            <button class="btn" type="button" data-action="task.openHistory" data-i18n="run.openHistory">&#20219;&#21153;&#21382;&#21490;</button>
+            <button class="btn" type="button" data-action="task.openContext" data-i18n="run.openContext">&#19978;&#19979;&#25991;</button>
+            <button class="btn" type="button" data-action="task.copyLog" data-i18n="run.copyLog">&#22797;&#21046;&#26085;&#24535;</button>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.plan.eyebrow">Approval</p>
+              <h3 data-i18n="run.plan.title">Plan Confirmation</h3>
+            </div>
+            <span class="mini-label" data-i18n="run.status.waiting">waiting</span>
+          </div>
+          <div class="card-body">
+            <div class="plan-box">
+              <strong data-i18n="run.plan.summary">PlannerAgent has generated a plan:</strong>
+              <ol>
+                <li data-i18n="run.plan.stepAnalyzeStructure">Analyze project structure</li>
+                <li data-i18n="run.plan.stepLocateLoginCode">Locate login related code</li>
+                <li data-i18n="run.plan.stepGeneratePatch">Generate patch</li>
+                <li data-i18n="run.plan.stepWaitApproval">Wait for user confirmation</li>
+              </ol>
+            </div>
+            <div class="action-row">
+              <button class="btn green" type="button" data-action="plan.approve" data-i18n="run.plan.approve">Approve Plan</button>
+              <button class="btn" type="button" data-action="plan.revise" data-i18n="run.plan.revise">Revise Plan</button>
+              <button class="btn" type="button" data-action="plan.saveAsTemplate" data-i18n="run.plan.saveAsTemplate">Save as Template</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.agents.eyebrow">Agents</p>
+              <h3 data-i18n="run.agents.title">Agent Status</h3>
+            </div>
+          </div>
+          <div class="card-body status-list">
+            <div class="status-row"><span>PlannerAgent</span><span class="pill green" data-i18n="run.status.done">done</span></div>
+            <div class="status-row"><span>CodebaseAgent</span><span class="pill green" data-i18n="run.status.done">done</span></div>
+            <div class="status-row"><span>DeveloperAgent</span><span class="pill accent" data-i18n="run.status.running">running</span></div>
+            <div class="status-row"><span>ReviewerAgent</span><span class="pill" data-i18n="run.status.waiting">waiting</span></div>
+            <div class="status-row"><span>TesterAgent</span><span class="pill" data-i18n="run.status.waiting">waiting</span></div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.timeline.eyebrow">Progress</p>
+              <h3 data-i18n="run.timeline.title">Timeline</h3>
+            </div>
+          </div>
+          <div class="card-body timeline">
+            <div class="timeline-item"><span class="dot active"></span><strong data-i18n="run.timeline.requirementSplit">Requirement split</strong></div>
+            <div class="timeline-item"><span class="dot active"></span><strong data-i18n="run.timeline.codebaseAnalysis">Codebase analysis</strong></div>
+            <div class="timeline-item"><span class="dot active"></span><strong data-i18n="run.timeline.generatePatch">Generate Patch</strong></div>
+            <div class="timeline-item"><span class="dot"></span><strong data-i18n="run.timeline.review">Review</strong></div>
+            <div class="timeline-item"><span class="dot"></span><strong data-i18n="run.timeline.patchApproval">Patch approval</strong></div>
+            <div class="timeline-item"><span class="dot"></span><strong data-i18n="run.timeline.test">Test</strong></div>
+            <div class="timeline-item"><span class="dot"></span><strong data-i18n="run.timeline.summary">Summary</strong></div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.tools.eyebrow">Tools</p>
+              <h3 data-i18n="run.tools.title">Tool Call</h3>
+            </div>
+            <span class="mini-label" data-i18n="run.common.staticExample">static example</span>
+          </div>
+          <div class="card-body tool-call">
+            <div class="kv-list">
+              <div class="kv-row"><span data-i18n="run.tools.tool">Tool</span><strong>read_file</strong></div>
+              <div class="kv-row"><span data-i18n="run.tools.agent">Agent</span><strong>CodebaseAgent</strong></div>
+              <div class="kv-row"><span data-i18n="run.tools.args">Args</span><code>{"path": "pom.xml"}</code></div>
+              <div class="kv-row"><span data-i18n="run.tools.result">Result</span><strong data-i18n="run.tools.placeholderResult">placeholder result</strong></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.patch.eyebrow">Changes</p>
+              <h3 data-i18n="run.patch.title">Patch Proposed</h3>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="diff-list">
+              <div class="diff-row"><span>src/main/java/.../AuthController.java</span><span class="pill green" data-i18n="run.patch.added">added</span></div>
+              <div class="diff-row"><span>src/main/java/.../AuthService.java</span><span class="pill green" data-i18n="run.patch.added">added</span></div>
+              <div class="diff-row"><span>pom.xml</span><span class="pill accent" data-i18n="run.patch.modified">modified</span></div>
+            </div>
+            <div class="action-row">
+              <button class="btn" type="button" data-action="patch.openDiff" data-i18n="run.patch.openDiff">Open Diff</button>
+              <button class="btn green" type="button" data-action="patch.apply" data-i18n="run.patch.apply">Apply Patch</button>
+              <button class="btn danger" type="button" data-action="patch.reject" data-i18n="run.patch.reject">Reject with Reason</button>
+              <button class="btn" type="button" data-action="patch.applyPartial" data-i18n="run.patch.applyPartial">Apply Partial</button>
+              <button class="btn" type="button" data-action="patch.explain" data-i18n="run.patch.explain">Explain Diff</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.command.eyebrow">Command</p>
+              <h3 data-i18n="run.command.title">Command Approval</h3>
+            </div>
+            <span class="mini-label" data-i18n="run.command.manual">manual</span>
+          </div>
+          <div class="card-body">
+            <div class="codebox">mvn test</div>
+            <div class="action-row">
+              <button class="btn green" type="button" data-action="command.approveOnce" data-i18n="run.command.approveOnce">Allow Once</button>
+              <button class="btn" type="button" data-action="command.addAllowlist" data-i18n="run.command.addAllowlist">Add to Allowlist</button>
+              <button class="btn danger" type="button" data-action="command.reject" data-i18n="run.command.reject">Reject</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="section-card log-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow" data-i18n="run.log.eyebrow">Events</p>
+              <h3 data-i18n="run.log.title">Message Log</h3>
+            </div>
+            <span class="mini-label" data-i18n="run.log.placeholderResponse">placeholder response</span>
+          </div>
+          <div id="event-log" class="log" data-event-log aria-live="polite"></div>
+        </article>
+
+        <article class="section-card bottom-compose">
+          <label class="field">
+            <span data-i18n="run.followup.title">Follow-up Message</span>
+            <textarea data-field="task.followupMessage" data-i18n-placeholder="run.followup.placeholder" placeholder="Add a follow-up instruction for the placeholder task."></textarea>
+          </label>
+          <div class="action-row">
+            <button class="primary-action" type="button" data-action="task.userMessage" data-i18n="run.followup.send">Send Follow-up Message</button>
+          </div>
+        </article>
+      </section>

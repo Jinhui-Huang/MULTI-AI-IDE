@@ -1,0 +1,204 @@
+:root {
+  --bg: #191817;
+  --surface: #22211f;
+  --surface-2: #2a2926;
+  --surface-3: #33312d;
+  --line: #3b3934;
+  --line-soft: rgba(255, 255, 255, 0.075);
+  --text: #f4eee7;
+  --muted: #a9a097;
+  --faint: #7d746c;
+  --accent: #d97757;
+  --accent-2: #f0a37c;
+  --accent-soft: rgba(217, 119, 87, 0.14);
+  --green: #7fbe8c;
+  --red: #e87979;
+  --shadow: rgba(0, 0, 0, 0.34);
+  --content-max-width: 920px;
+  --font: var(--vscode-font-family, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  --mono: var(--vscode-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(217, 119, 87, 0.2), transparent 34%),
+    radial-gradient(circle at 100% 18%, rgba(127, 190, 140, 0.08), transparent 30%),
+    linear-gradient(180deg, #201e1b 0%, var(--bg) 46%, #151412 100%);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.webview-shell {
+  width: 100%;
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    linear-gradient(180deg, rgba(34, 33, 31, 0.72) 0, rgba(25, 24, 23, 0.18) 220px),
+    transparent;
+}
+
+.app-shell {
+  display: block;
+}
+
+.webview-status {
+  border-bottom: 1px solid var(--line);
+  padding: 6px max(14px, calc((100vw - var(--content-max-width)) / 2 + 14px));
+  background: rgba(127, 190, 140, 0.08);
+  color: var(--green);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.webview-status.error {
+  background: rgba(232, 121, 121, 0.08);
+  color: var(--red);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px max(14px, calc((100vw - var(--content-max-width)) / 2 + 14px));
+  border-bottom: 1px solid var(--line);
+  background: rgba(34, 33, 31, 0.72);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.logo {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #c45f3d, #eea06f);
+  color: #231611;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 8px 20px rgba(217, 119, 87, 0.16);
+}
+
+.brand-copy {
+  min-width: 0;
+}
+
+.brand-copy h1 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 760;
+}
+
+.brand-copy p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-pill,
+.mini-label {
+  flex: 0 0 auto;
+  border: 1px solid rgba(127, 190, 140, 0.22);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(127, 190, 140, 0.1);
+  color: var(--green);
+  font-size: 11px;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.mini-btn {
+  min-height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mini-btn:hover {
+  color: var(--text);
+  border-color: rgba(240, 163, 124, 0.34);
+  background: var(--surface-3);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px max(14px, calc((100vw - var(--content-max-width)) / 2 + 14px));
+  border-bottom: 1px solid var(--line);
+  background: rgba(25, 24, 23, 0.68);
+  backdrop-filter: blur(12px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: 0 0 auto;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0 11px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.tab.active {
+  color: var(--text);
+  background: #2f2b26;
+  border-color: rgba(240, 163, 124, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+}
+

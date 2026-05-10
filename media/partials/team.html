@@ -1,0 +1,141 @@
+<section class="panel" data-panel="team">
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.setup.eyebrow">Team setup</p>
+        <h2 data-i18n="team.title">Team</h2>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="team.create" data-i18n="team.create">Create Team</button>
+        <button class="btn" type="button" data-action="team.copy" data-i18n="team.copy">Copy Team</button>
+        <button class="btn danger" type="button" data-action="team.delete" data-i18n="team.delete">Delete Team</button>
+        <button class="btn" type="button" data-action="team.setDefault" data-i18n="team.setDefault">Set Default</button>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="team.name">Team Name</span>
+        <input data-field="team.name" value="Java Spring Boot Team">
+      </label>
+      <label class="field">
+        <span data-i18n="team.mode">Mode</span>
+        <select data-field="team.mode">
+          <option value="sequential">sequential</option>
+          <option value="round_robin">round_robin</option>
+          <option value="selector">selector</option>
+          <option value="manual">manual</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="team.maxTurns">Max Turns</span>
+        <input data-field="team.maxTurns" type="number" value="20" min="1">
+      </label>
+      <label class="field">
+        <span data-i18n="team.retryLimit">Retry Limit</span>
+        <input data-field="team.retryLimit" type="number" value="2" min="0">
+      </label>
+      <label class="field">
+        <span data-i18n="team.termination">Termination</span>
+        <select data-field="team.termination">
+          <option value="max_turns">max_turns</option>
+          <option value="text_mention_TERMINATE">text_mention_TERMINATE</option>
+          <option value="approval_required">approval_required</option>
+          <option value="workflow_end">workflow_end</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="team.executionPolicy">Execution Policy</span>
+        <select data-field="team.executionPolicy">
+          <option value="sequential">sequential</option>
+          <option value="parallel_allowed">parallel_allowed</option>
+          <option value="manual_step">manual_step</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="team.modelOverride">Model Override</span>
+        <select data-field="team.modelOverride">
+          <option value="none">none</option>
+          <option value="use_team_default">use_team_default</option>
+          <option value="force_gpt_4_1">force_gpt_4_1</option>
+          <option value="force_local_model">force_local_model</option>
+        </select>
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.order.eyebrow">Order</p>
+        <h3 data-i18n="team.sequence.title">Team Agent Sequence</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="team.addAgent" data-i18n="team.addAgent">Add Agent</button>
+        <button class="btn danger" type="button" data-action="team.removeAgent" data-i18n="team.removeAgent">Remove Selected</button>
+        <button class="btn" type="button" data-action="team.moveAgentUp" data-i18n="team.moveAgentUp">Move Up</button>
+        <button class="btn" type="button" data-action="team.moveAgentDown" data-i18n="team.moveAgentDown">Move Down</button>
+      </div>
+    </div>
+    <div class="card-body ordered-list">
+      <div class="ordered-row"><span>1</span><strong>PlannerAgent</strong><p data-i18n="team.planner.role">Plan task decomposition.</p><em data-i18n="common.enabled">enabled</em></div>
+      <div class="ordered-row"><span>2</span><strong>CodebaseAgent</strong><p data-i18n="team.codebase.role">Analyze related files.</p><em data-i18n="common.enabled">enabled</em></div>
+      <div class="ordered-row"><span>3</span><strong>DeveloperAgent</strong><p data-i18n="team.developer.role">Generate patch proposal.</p><em data-i18n="common.enabled">enabled</em></div>
+      <div class="ordered-row"><span>4</span><strong>ReviewerAgent</strong><p data-i18n="team.reviewer.role">Review generated changes.</p><em data-i18n="common.enabled">enabled</em></div>
+      <div class="ordered-row"><span>5</span><strong>TesterAgent</strong><p data-i18n="team.tester.role">Suggest test commands.</p><em data-i18n="common.enabled">enabled</em></div>
+      <div class="ordered-row"><span>6</span><strong>SummaryAgent</strong><p data-i18n="team.summary.role">Summarize final result.</p><em data-i18n="common.enabled">enabled</em></div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.modeGuide.eyebrow">Mode guide</p>
+        <h3 data-i18n="team.collaboration.title">Collaboration Mode</h3>
+      </div>
+    </div>
+    <div class="card-body info-list">
+      <p><strong>sequential</strong> <span data-i18n="team.mode.sequential">Run agents in Workflow order.</span></p>
+      <p><strong>round_robin</strong> <span data-i18n="team.mode.roundRobin">Rotate across multiple agents.</span></p>
+      <p><strong>selector</strong> <span data-i18n="team.mode.selector">Let selector choose the next agent.</span></p>
+      <p><strong>manual</strong> <span data-i18n="team.mode.manual">User manually chooses the next agent.</span></p>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.templates.eyebrow">Templates</p>
+        <h3 data-i18n="team.templates.title">Team Templates</h3>
+      </div>
+    </div>
+    <div class="card-body template-grid">
+      <div class="template-card"><strong>Java Spring Boot Team</strong><p data-i18n="team.template.backend">Backend code edit flow.</p><button class="btn" type="button" data-action="team.useTemplate" data-i18n="team.useTemplate">Use Template</button></div>
+      <div class="template-card"><strong>Frontend React Team</strong><p data-i18n="team.template.frontend">UI and component flow.</p><button class="btn" type="button" data-action="team.useTemplate" data-i18n="team.useTemplate">Use Template</button></div>
+      <div class="template-card"><strong>Explain Code Team</strong><p data-i18n="team.template.explain">Read-only explanation flow.</p><button class="btn" type="button" data-action="team.useTemplate" data-i18n="team.useTemplate">Use Template</button></div>
+      <div class="template-card"><strong>Bug Fix Team</strong><p data-i18n="team.template.bugfix">Diagnosis and patch flow.</p><button class="btn" type="button" data-action="team.useTemplate" data-i18n="team.useTemplate">Use Template</button></div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.actions.eyebrow">Actions</p>
+        <h3 data-i18n="team.actions.title">Team Operations</h3>
+      </div>
+    </div>
+    <div class="card-body action-grid">
+      <button class="primary-action" type="button" data-action="team.save" data-i18n="team.save">Save Team</button>
+      <button class="btn" type="button" data-action="team.restoreDefault" data-i18n="team.restoreDefault">Restore Default</button>
+    </div>
+  </article>
+
+  <article class="section-card log-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.log.eyebrow">Events</p>
+        <h3 data-i18n="team.log.title">Team Log</h3>
+      </div>
+    </div>
+    <div class="log" data-event-log aria-live="polite"></div>
+  </article>
+</section>

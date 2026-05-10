@@ -8,93 +8,44 @@
   <title>AutoGen Control Panel</title>
 </head>
 <body>
-  <div class="webview-shell">
+  <div id="app" class="webview-shell app-shell">
     <header class="topbar">
       <div class="brand">
         <div class="logo" aria-hidden="true">A</div>
         <div class="brand-copy">
-          <h1>AutoGen Code</h1>
-          <p>Control panel skeleton</p>
+          <h1 data-i18n="app.title">AutoGen Code</h1>
+          <p data-i18n="app.subtitle">Run control placeholder</p>
         </div>
       </div>
-      <span class="status-pill">Task 2A</span>
+      <div class="top-actions">
+        <button class="mini-btn" type="button" data-i18n-toggle data-i18n="language.toggle">中文</button>
+        <span class="status-pill" data-i18n="app.badge">Task 2G</span>
+      </div>
     </header>
 
+    <div id="webview-status" class="webview-status" data-i18n="status.htmlLoaded">Webview HTML loaded</div>
+
     <nav class="tabs" aria-label="AutoGen sections">
-      <button class="tab active" type="button" data-tab="run">Run</button>
-      <button class="tab" type="button" data-tab="agents">Agents</button>
-      <button class="tab" type="button" data-tab="team">Team</button>
-      <button class="tab" type="button" data-tab="tools">Tools</button>
-      <button class="tab" type="button" data-tab="workflow">Workflow</button>
-      <button class="tab" type="button" data-tab="settings">Settings</button>
+      <button class="tab active" type="button" data-tab="run" data-i18n="tabs.run">Run</button>
+      <button class="tab" type="button" data-tab="agents" data-i18n="tabs.agents">Agents</button>
+      <button class="tab" type="button" data-tab="team" data-i18n="tabs.team">Team</button>
+      <button class="tab" type="button" data-tab="tools" data-i18n="tabs.tools">Tools</button>
+      <button class="tab" type="button" data-tab="workflow" data-i18n="tabs.workflow">Workflow</button>
+      <button class="tab" type="button" data-tab="settings" data-i18n="tabs.settings">Settings</button>
     </nav>
 
     <main class="content">
-      <section class="panel active" data-panel="run">
-        <article class="placeholder-card">
-          <div>
-            <p class="eyebrow">Active workspace</p>
-            <h2>Run</h2>
-            <p>任务执行、Agent 消息、Tool Call、Patch、Command Approval 会显示在这里。</p>
-          </div>
-          <label class="field">
-            <span>Task request</span>
-            <textarea id="taskInput">请创建一个 Task 2A 测试任务。</textarea>
-          </label>
-          <div class="actions">
-            <button class="primary-action" type="button" data-action="task.create">发送测试任务</button>
-            <span id="status" class="inline-status">Ready</span>
-          </div>
-        </article>
+      <!-- PANEL_RUN -->
 
-        <article class="log-card">
-          <div class="card-head">
-            <h3>Message Log</h3>
-            <span class="mini-label">placeholder response</span>
-          </div>
-          <div id="log" class="log" aria-live="polite"></div>
-        </article>
-      </section>
+      <!-- PANEL_AGENTS -->
 
-      <section class="panel" data-panel="agents">
-        <article class="placeholder-card">
-          <p class="eyebrow">Configuration</p>
-          <h2>Agents</h2>
-          <p>Agent 配置页面占位。</p>
-        </article>
-      </section>
+      <!-- PANEL_TEAM -->
 
-      <section class="panel" data-panel="team">
-        <article class="placeholder-card">
-          <p class="eyebrow">Collaboration</p>
-          <h2>Team</h2>
-          <p>多 Agent Team 配置页面占位。</p>
-        </article>
-      </section>
+      <!-- PANEL_TOOLS -->
 
-      <section class="panel" data-panel="tools">
-        <article class="placeholder-card">
-          <p class="eyebrow">Safety</p>
-          <h2>Tools</h2>
-          <p>工具权限矩阵页面占位。</p>
-        </article>
-      </section>
+      <!-- PANEL_WORKFLOW -->
 
-      <section class="panel" data-panel="workflow">
-        <article class="placeholder-card">
-          <p class="eyebrow">Orchestration</p>
-          <h2>Workflow</h2>
-          <p>工作流编排页面占位。</p>
-        </article>
-      </section>
-
-      <section class="panel" data-panel="settings">
-        <article class="placeholder-card">
-          <p class="eyebrow">Runtime</p>
-          <h2>Settings</h2>
-          <p>模型和 Runtime 设置页面占位。</p>
-        </article>
-      </section>
+      <!-- PANEL_SETTINGS -->
     </main>
   </div>
   <!-- SCRIPT_PLACEHOLDER -->

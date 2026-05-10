@@ -1,0 +1,199 @@
+<section class="panel" data-panel="settings">
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.model.eyebrow">Model</p>
+        <h2 data-i18n="settings.title">Settings</h2>
+      </div>
+      <div class="action-row">
+        <button class="primary-action" type="button" data-action="settings.save" data-i18n="settings.save">Save Settings</button>
+        <button class="btn green" type="button" data-action="settings.testModel" data-i18n="settings.testModel">Test Model</button>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="settings.provider">Provider</span>
+        <select data-field="settings.provider">
+          <option value="openai">openai</option>
+          <option value="azure_openai">azure_openai</option>
+          <option value="openai_compatible" selected>openai_compatible</option>
+          <option value="ollama">ollama</option>
+          <option value="lmstudio">lmstudio</option>
+          <option value="mock">mock</option>
+        </select>
+      </label>
+      <label class="field">
+        <span data-i18n="settings.baseUrl">Base URL</span>
+        <input data-field="settings.baseUrl" value="http://localhost:11434/v1">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.model">Model</span>
+        <input data-field="settings.model" value="qwen2.5-coder:7b">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.fallbackModel">Fallback Model</span>
+        <input data-field="settings.fallbackModel" value="gpt-4.1-mini">
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.secrets.eyebrow">Secrets</p>
+        <h3 data-i18n="settings.secrets.title">API Key / SecretStorage</h3>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="settings.apiKey">API Key</span>
+        <input data-field="settings.apiKey" type="password" value="placeholder-api-key">
+      </label>
+      <label class="check-row">
+        <input type="checkbox" data-field="settings.useSecretStorage" checked>
+        <span data-i18n="settings.useSecretStorage">Use VS Code SecretStorage for API Key</span>
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.runtime.eyebrow">Runtime</p>
+        <h3 data-i18n="settings.runtimeConfig.title">AutoGen Runtime Config</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="settings.runtime.save" data-i18n="settings.saveRuntime">Save Runtime</button>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="settings.serviceUrl">Service URL</span>
+        <input data-field="settings.serviceUrl" value="http://127.0.0.1:8765">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.host">Host</span>
+        <input data-field="settings.host" value="127.0.0.1">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.port">Port</span>
+        <input data-field="settings.port" type="number" value="8765" min="1">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.pythonPath">Python Path</span>
+        <input data-field="settings.pythonPath" value="D:\Python311\python.exe">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.autogenPackage">AutoGen Package</span>
+        <input data-field="settings.autogenPackage" value="autogen-agentchat">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.logLevel">Log Level</span>
+        <select data-field="settings.logLevel">
+          <option value="debug">debug</option>
+          <option value="info" selected>info</option>
+          <option value="warn">warn</option>
+          <option value="error">error</option>
+        </select>
+      </label>
+      <label class="field wide-field">
+        <span data-i18n="settings.workspaceStoragePath">Workspace Storage Path</span>
+        <input data-field="settings.workspaceStoragePath" value="D:\AIIDE\data">
+      </label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.runtime.eyebrow">Runtime</p>
+        <h3 data-i18n="settings.runtimeStatus.title">Runtime Status</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn green" type="button" data-action="runtime.start" data-i18n="settings.runtime.start">Start</button>
+        <button class="btn danger" type="button" data-action="runtime.stop" data-i18n="settings.runtime.stop">Stop</button>
+        <button class="btn" type="button" data-action="runtime.restart" data-i18n="settings.runtime.restart">Restart</button>
+        <button class="btn" type="button" data-action="runtime.health" data-i18n="settings.runtime.health">Health</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="kv-list">
+        <div class="kv-row"><span data-i18n="settings.runtime.provider">Provider</span><strong>AutoGen</strong></div>
+        <div class="kv-row"><span data-i18n="settings.runtime.status">Status</span><strong data-i18n="settings.runtime.stoppedPlaceholder">stopped / placeholder</strong></div>
+        <div class="kv-row"><span data-i18n="settings.runtime.url">URL</span><strong>http://127.0.0.1:8765</strong></div>
+        <div class="kv-row"><span data-i18n="settings.runtime.python">Python</span><strong>D:\Python311\python.exe</strong></div>
+        <div class="kv-row"><span data-i18n="settings.runtime.package">Package</span><strong>autogen-agentchat</strong></div>
+        <div class="kv-row"><span data-i18n="settings.runtime.healthLabel">Health</span><strong data-i18n="settings.runtime.never">never</strong></div>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="runtime.openLogs" data-i18n="settings.runtime.openLogs">Open Runtime Logs</button>
+        <button class="btn" type="button" data-action="runtime.openConfigDir" data-i18n="settings.runtime.openConfigDir">Open Config Dir</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.safety.eyebrow">Safety</p>
+        <h3 data-i18n="settings.safety.title">Context / Safety</h3>
+      </div>
+      <button class="primary-action" type="button" data-action="settings.safety.save" data-i18n="settings.saveSafety">Save Safety Policy</button>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="settings.maxFilesRead">Max Files Read</span>
+        <input data-field="settings.maxFilesRead" type="number" value="30" min="1">
+      </label>
+      <label class="field">
+        <span data-i18n="settings.maxContextTokens">Max Context Tokens</span>
+        <input data-field="settings.maxContextTokens" type="number" value="64000" min="1">
+      </label>
+      <label class="check-row"><input type="checkbox" data-field="settings.requirePlanApproval" checked> <span data-i18n="settings.requirePlanApproval">Require plan approval</span></label>
+      <label class="check-row"><input type="checkbox" data-field="settings.requirePatchApproval" checked> <span data-i18n="settings.requirePatchApproval">Require patch approval</span></label>
+      <label class="check-row"><input type="checkbox" data-field="settings.requireCommandApproval" checked> <span data-i18n="settings.requireCommandApproval">Require command approval</span></label>
+      <label class="check-row"><input type="checkbox" data-field="settings.createCheckpointBeforePatch" checked> <span data-i18n="settings.createCheckpointBeforePatch">Create checkpoint before patch</span></label>
+      <label class="check-row"><input type="checkbox" data-field="settings.redactSecretsInLogs" checked> <span data-i18n="settings.redactSecretsInLogs">Redact secrets in logs</span></label>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.config.eyebrow">Config</p>
+        <h3 data-i18n="settings.config.title">Import / Export / Restore</h3>
+      </div>
+    </div>
+    <div class="card-body info-list">
+      <p data-i18n="settings.importDescription">Import config: load Agent / Team / Workflow / Settings from JSON.</p>
+      <p data-i18n="settings.exportDescription">Export config: export the current placeholder configuration.</p>
+      <p data-i18n="settings.restoreDescription">Restore default: restore built-in placeholder defaults.</p>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="settings.import" data-i18n="settings.import">Import Config</button>
+        <button class="btn" type="button" data-action="settings.export" data-i18n="settings.export">Export Config</button>
+        <button class="btn danger" type="button" data-action="settings.restoreDefault" data-i18n="settings.restoreDefault">Restore Default</button>
+      </div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.history.eyebrow">History</p>
+        <h3 data-i18n="settings.history.title">Task History</h3>
+      </div>
+    </div>
+    <div class="card-body info-list">
+      <p data-i18n="settings.historyDescription">Clearing task history only removes local task records. It does not delete source files.</p>
+      <button class="btn danger" type="button" data-action="taskHistory.clear" data-i18n="settings.clearTaskHistory">Clear Task History</button>
+    </div>
+  </article>
+
+  <article class="section-card log-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="settings.log.eyebrow">Events</p>
+        <h3 data-i18n="settings.log.title">Settings Log</h3>
+      </div>
+    </div>
+    <div class="log" data-event-log aria-live="polite"></div>
+  </article>
+</section>

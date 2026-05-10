@@ -23,6 +23,87 @@ export interface WebviewResponse {
 }
 
 export class MessageDispatcher {
+  private readonly placeholderActions = new Set([
+    'task.create',
+    'task.pause',
+    'task.resume',
+    'task.cancel',
+    'task.rerunCurrentAgent',
+    'task.switchAgent',
+    'task.openHistory',
+    'task.openContext',
+    'task.copyLog',
+    'task.userMessage',
+    'plan.approve',
+    'plan.revise',
+    'plan.saveAsTemplate',
+    'patch.openDiff',
+    'patch.apply',
+    'patch.reject',
+    'patch.applyPartial',
+    'patch.explain',
+    'command.approveOnce',
+    'command.addAllowlist',
+    'command.reject',
+    'agent.create',
+    'agent.import',
+    'agent.copy',
+    'agent.disable',
+    'agent.delete',
+    'agent.reset',
+    'agent.save',
+    'agent.test',
+    'team.create',
+    'team.copy',
+    'team.delete',
+    'team.setDefault',
+    'team.addAgent',
+    'team.removeAgent',
+    'team.moveAgentUp',
+    'team.moveAgentDown',
+    'team.save',
+    'team.restoreDefault',
+    'team.useTemplate',
+    'tool.permission.save',
+    'tool.permission.batchEdit',
+    'tool.create',
+    'tool.test',
+    'tool.schema.save',
+    'tool.allowlist.save',
+    'tool.blocklist.save',
+    'tool.sensitiveFiles.save',
+    'tool.globalSafety.save',
+    'workflow.save',
+    'workflow.saveAsTemplate',
+    'workflow.setDefault',
+    'workflow.testRun',
+    'workflow.exportJson',
+    'workflow.importJson',
+    'workflow.node.select',
+    'workflow.node.edit',
+    'workflow.node.addAfter',
+    'workflow.node.moveUp',
+    'workflow.node.moveDown',
+    'workflow.node.delete',
+    'workflow.node.addAgent',
+    'workflow.node.addHumanApproval',
+    'workflow.node.addCondition',
+    'settings.save',
+    'settings.testModel',
+    'settings.import',
+    'settings.export',
+    'settings.restoreDefault',
+    'settings.safety.save',
+    'settings.runtime.save',
+    'runtime.start',
+    'runtime.stop',
+    'runtime.restart',
+    'runtime.health',
+    'runtime.openLogs',
+    'runtime.openConfigDir',
+    'taskHistory.clear'
+  ]);
+
   constructor(private readonly output: vscode.OutputChannel) {}
 
   async dispatch(message: unknown): Promise<WebviewResponse> {
@@ -38,33 +119,33 @@ export class MessageDispatcher {
     }
 
     this.output.appendLine(`[webview] ${message.type}`);
-    switch (message.type) {
-      case 'task.create':
-        return this.createTaskPlaceholder(message as WebviewMessage<TaskCreatePayload>);
-      default:
-        return {
-          ok: false,
-          type: 'response.error',
-          requestId: message.requestId,
-          error: {
-            code: 'UNKNOWN_MESSAGE',
-            message: `Unknown webview message type: ${message.type}`
-          }
-        };
+    if (this.placeholderActions.has(message.type)) {
+      return this.createPlaceholderResponse(message);
     }
+
+    return {
+      ok: false,
+      type: 'error',
+      requestId: message.requestId,
+      error: {
+        code: 'UNKNOWN_ACTION',
+        message: `Unknown action: ${message.type}`
+      }
+    };
   }
 
   createTaskPlaceholder(message: WebviewMessage<TaskCreatePayload>): WebviewResponse {
-    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    return this.createPlaceholderResponse(message);
+  }
+
+  private createPlaceholderResponse(message: WebviewMessage): WebviewResponse {
     return {
       ok: true,
-      type: 'task.create.result',
+      type: `${message.type}.result`,
       requestId: message.requestId,
       payload: {
-        message: 'Task create placeholder received',
-        userRequest: message.payload?.userRequest ?? '',
-        workspaceRoot,
-        receivedAt: new Date().toISOString()
+        message: `Placeholder handled: ${message.type}`,
+        receivedPayload: message.payload ?? {}
       }
     };
   }

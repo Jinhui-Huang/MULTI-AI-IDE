@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import { MessageDispatcher } from './MessageDispatcher';
 import { WebviewHtmlBuilder } from './WebviewHtmlBuilder';
 
-export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
-  private view?: vscode.WebviewView;
+export class AgentControlPanel {
+  private panel?: vscode.WebviewPanel;
   private readonly dispatcher: MessageDispatcher;
   private readonly htmlBuilder: WebviewHtmlBuilder;
 
@@ -15,28 +15,35 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
     this.htmlBuilder = new WebviewHtmlBuilder(context.extensionUri, output);
   }
 
-  async resolveWebviewView(view: vscode.WebviewView): Promise<void> {
-    this.log('resolveWebviewView called');
-    this.view = view;
-    const mediaUri = vscode.Uri.joinPath(this.context.extensionUri, 'media');
-    view.webview.options = {
-      enableScripts: true,
-      localResourceRoots: [mediaUri]
-    };
-    try {
-      view.webview.html = await this.htmlBuilder.build(view.webview);
-      this.log('webview html assigned');
-    } catch (err: unknown) {
-      this.log(`Failed to build HTML: ${this.stringifyError(err)}`);
-      view.webview.html = this.htmlBuilder.getFallbackHtml(err);
+  async open(): Promise<void> {
+    if (this.panel) {
+      this.panel.reveal(vscode.ViewColumn.Beside);
+      return;
     }
-    view.webview.onDidReceiveMessage(async (message: unknown) => {
+
+    const mediaUri = vscode.Uri.joinPath(this.context.extensionUri, 'media');
+    const panel = vscode.window.createWebviewPanel(
+      'autogenAgent.controlPanelPanel',
+      'AutoGen Control',
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [mediaUri]
+      }
+    );
+    this.panel = panel;
+    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'icon.svg');
+    panel.onDidDispose(() => {
+      this.panel = undefined;
+    }, null, this.context.subscriptions);
+    panel.webview.onDidReceiveMessage(async (message: unknown) => {
       try {
         const response = await this.dispatcher.dispatch(message);
-        await view.webview.postMessage(response);
+        await panel.webview.postMessage(response);
       } catch (err: unknown) {
         const requestId = this.getRequestId(message);
-        await view.webview.postMessage({
+        await panel.webview.postMessage({
           ok: false,
           type: 'response.error',
           requestId,
@@ -46,35 +53,30 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
           }
         });
       }
-    });
-  }
+    }, null, this.context.subscriptions);
 
-  postMessage(message: unknown): void {
-    void this.view?.webview.postMessage(message);
-  }
-
-  postPlaceholderTaskCreate(userRequest: string): void {
-    if (!this.view) {
-      void vscode.window.showInformationMessage('请先打开 AutoGen Control 面板');
-      return;
+    try {
+      panel.webview.html = await this.htmlBuilder.build(panel.webview);
+      this.output.appendLine('[panel] webview html assigned');
+    } catch (err: unknown) {
+      this.output.appendLine(`[panel] Failed to build HTML: ${this.stringifyError(err)}`);
+      panel.webview.html = this.htmlBuilder.getFallbackHtml(err);
     }
+  }
 
+  async postPlaceholderTaskCreate(userRequest: string): Promise<void> {
+    await this.open();
     const response = this.dispatcher.createTaskPlaceholder({
       type: 'task.create',
       requestId: `command_${Date.now()}`,
       timestamp: Date.now(),
       payload: { userRequest }
     });
-    this.postMessage(response);
+    await this.panel?.webview.postMessage(response);
   }
 
   private stringifyError(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
-  }
-
-  private log(message: string): void {
-    console.log(`[AutoGen Webview] ${message}`);
-    this.output.appendLine(`[webview] ${message}`);
   }
 
   private getRequestId(message: unknown): string | undefined {
