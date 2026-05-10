@@ -44,6 +44,11 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
   }
 
   postPlaceholderTaskCreate(userRequest: string): void {
+    if (!this.view) {
+      void vscode.window.showInformationMessage('请先打开 AutoGen Control 面板');
+      return;
+    }
+
     const response = this.dispatcher.createTaskPlaceholder({
       type: 'task.create',
       requestId: `command_${Date.now()}`,
@@ -59,8 +64,15 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
     const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const bridge = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'webview-bridge.js'));
     const csp = "default-src 'none'; img-src " + webview.cspSource + " data:; style-src " + webview.cspSource + " 'unsafe-inline'; script-src 'nonce-" + nonce + "'; font-src " + webview.cspSource;
-    html = html.replace('</head>', `<meta http-equiv="Content-Security-Policy" content="${csp}"></head>`);
-    html = html.replace('</body>', `<script nonce="${nonce}" src="${bridge}"></script></body>`);
+    const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
+    const scriptTag = `<script nonce="${nonce}" src="${bridge}"></script>`;
+
+    if (!html.includes('<!-- CSP_PLACEHOLDER -->') || !html.includes('<!-- SCRIPT_PLACEHOLDER -->')) {
+      throw new Error('media/webview.html must include CSP_PLACEHOLDER and SCRIPT_PLACEHOLDER comments');
+    }
+
+    html = html.replace('<!-- CSP_PLACEHOLDER -->', cspMeta);
+    html = html.replace('<!-- SCRIPT_PLACEHOLDER -->', scriptTag);
     return html;
   }
 

@@ -4,8 +4,13 @@
   "description": "VS Code Webview + Python AutoGen Service skeleton.",
   "version": "0.1.0",
   "publisher": "local-dev",
-  "engines": { "vscode": "^1.92.0" },
-  "categories": ["AI", "Other"],
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
   "activationEvents": [
     "onView:autogenAgent.controlPanel",
     "onCommand:autogenAgent.openPanel",
@@ -14,26 +19,93 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      { "command": "autogenAgent.openPanel", "title": "AutoGen Code Agent: Open Panel" },
-      { "command": "autogenAgent.startTask", "title": "AutoGen Code Agent: Start Task" }
+      {
+        "command": "autogenAgent.openPanel",
+        "title": "AutoGen Code Agent: Open Panel"
+      },
+      {
+        "command": "autogenAgent.startTask",
+        "title": "AutoGen Code Agent: Start Task"
+      }
     ],
-    "viewsContainers": { "activitybar": [{ "id": "autogenAgent", "title": "AutoGen", "icon": "media/icon.svg" }] },
-    "views": { "autogenAgent": [{ "id": "autogenAgent.controlPanel", "name": "AutoGen Control" }] },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autogenAgent",
+          "title": "AutoGen",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "autogenAgent": [
+        {
+          "id": "autogenAgent.controlPanel",
+          "name": "AutoGen Control"
+        }
+      ]
+    },
     "configuration": {
       "title": "AutoGen Code Agent",
       "properties": {
-        "autogenAgent.runtimeProvider": { "type": "string", "default": "autogen", "enum": ["autogen", "mock"] },
-        "autogenAgent.serviceUrl": { "type": "string", "default": "http://127.0.0.1:8765" },
-        "autogenAgent.pythonPath": { "type": "string", "default": "python" },
-        "autogenAgent.serviceHost": { "type": "string", "default": "127.0.0.1" },
-        "autogenAgent.servicePort": { "type": "number", "default": 8765 },
-        "autogenAgent.modelProvider": { "type": "string", "default": "openai-compatible" },
-        "autogenAgent.baseUrl": { "type": "string", "default": "" },
-        "autogenAgent.model": { "type": "string", "default": "gpt-4.1" },
-        "autogenAgent.fallbackModel": { "type": "string", "default": "gpt-4.1-mini" },
-        "autogenAgent.logLevel": { "type": "string", "default": "info", "enum": ["debug", "info", "warn", "error"] },
-        "autogenAgent.requirePatchApproval": { "type": "boolean", "default": true },
-        "autogenAgent.requireCommandApproval": { "type": "boolean", "default": true }
+        "autogenAgent.runtimeProvider": {
+          "type": "string",
+          "default": "autogen",
+          "enum": [
+            "autogen",
+            "mock"
+          ]
+        },
+        "autogenAgent.serviceUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8765"
+        },
+        "autogenAgent.pythonPath": {
+          "type": "string",
+          "default": "python"
+        },
+        "autogenAgent.serviceHost": {
+          "type": "string",
+          "default": "127.0.0.1"
+        },
+        "autogenAgent.servicePort": {
+          "type": "number",
+          "default": 8765
+        },
+        "autogenAgent.modelProvider": {
+          "type": "string",
+          "default": "openai-compatible"
+        },
+        "autogenAgent.baseUrl": {
+          "type": "string",
+          "default": ""
+        },
+        "autogenAgent.model": {
+          "type": "string",
+          "default": "gpt-4.1"
+        },
+        "autogenAgent.fallbackModel": {
+          "type": "string",
+          "default": "gpt-4.1-mini"
+        },
+        "autogenAgent.logLevel": {
+          "type": "string",
+          "default": "info",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        "autogenAgent.requirePatchApproval": {
+          "type": "boolean",
+          "default": true
+        },
+        "autogenAgent.requireCommandApproval": {
+          "type": "boolean",
+          "default": true
+        }
       }
     }
   },
@@ -44,5 +116,10 @@
     "service:dev": "python agent-service/main.py",
     "package": "vsce package"
   },
-  "devDependencies": { "@types/node": "^20.14.0", "@types/vscode": "^1.92.0", "typescript": "^5.5.4", "@vscode/vsce": "^3.0.0" }
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.92.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.5.4"
+  }
 }

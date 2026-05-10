@@ -15,9 +15,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const openPanelCommand = vscode.commands.registerCommand('autogenAgent.openPanel', () =>
     vscode.commands.executeCommand('autogenAgent.controlPanel.focus')
   );
-  const startTaskCommand = vscode.commands.registerCommand('autogenAgent.startTask', () =>
-    provider.postPlaceholderTaskCreate('Command placeholder task')
-  );
+  const startTaskCommand = vscode.commands.registerCommand('autogenAgent.startTask', async () => {
+    await vscode.commands.executeCommand('autogenAgent.controlPanel.focus');
+    provider.postPlaceholderTaskCreate('Command placeholder task');
+  });
 
   context.subscriptions.push(output, viewRegistration, openPanelCommand, startTaskCommand);
   output.appendLine('[activate] AutoGen Code Agent activated with Task 1 placeholders');
