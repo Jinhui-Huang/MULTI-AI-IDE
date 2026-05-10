@@ -4,123 +4,99 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- CSP_PLACEHOLDER -->
+  <!-- STYLE_PLACEHOLDER -->
   <title>AutoGen Control Panel</title>
-  <style>
-    :root {
-      --bg: #151515;
-      --panel: #202020;
-      --border: #343434;
-      --text: #f2f2f2;
-      --muted: #a8a8a8;
-      --accent: #4ea1f3;
-      --accent-strong: #70b7ff;
-      --error: #ff8585;
-      --ok: #7bd88f;
-      font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 16px;
-      background: var(--vscode-sideBar-background, var(--bg));
-      color: var(--vscode-sideBar-foreground, var(--text));
-    }
-
-    main {
-      display: grid;
-      gap: 12px;
-      max-width: 720px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .panel {
-      border: 1px solid var(--vscode-panel-border, var(--border));
-      background: var(--vscode-editor-background, var(--panel));
-      border-radius: 6px;
-      padding: 12px;
-      display: grid;
-      gap: 10px;
-    }
-
-    label {
-      color: var(--vscode-descriptionForeground, var(--muted));
-      font-size: 12px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 96px;
-      resize: vertical;
-      border: 1px solid var(--vscode-input-border, var(--border));
-      border-radius: 4px;
-      padding: 8px;
-      color: var(--vscode-input-foreground, var(--text));
-      background: var(--vscode-input-background, #111);
-      font: inherit;
-    }
-
-    button {
-      justify-self: start;
-      border: 1px solid var(--vscode-button-border, transparent);
-      border-radius: 4px;
-      padding: 7px 12px;
-      color: var(--vscode-button-foreground, #fff);
-      background: var(--vscode-button-background, var(--accent));
-      font: inherit;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--vscode-button-hoverBackground, var(--accent-strong));
-    }
-
-    #status {
-      color: var(--vscode-descriptionForeground, var(--muted));
-      min-height: 18px;
-      font-size: 12px;
-    }
-
-    #log {
-      min-height: 120px;
-      white-space: pre-wrap;
-      word-break: break-word;
-      font-family: var(--vscode-editor-font-family, Consolas, monospace);
-      font-size: 12px;
-      line-height: 1.45;
-    }
-
-    .ok {
-      color: var(--ok);
-    }
-
-    .error {
-      color: var(--error);
-    }
-  </style>
 </head>
 <body>
-  <main>
-    <h1>AutoGen &#25511;&#21046;&#21488;</h1>
-    <section class="panel">
-      <label for="taskInput">&#20219;&#21153;&#35831;&#27714;</label>
-      <textarea id="taskInput">&#35831;&#21019;&#24314;&#19968;&#20010; Task 1 &#21344;&#20301;&#20219;&#21153;&#12290;</textarea>
-      <button id="sendTaskButton" type="button">&#21457;&#36865;&#20219;&#21153;</button>
-      <div id="status">&#31561;&#24453;&#21457;&#36865;</div>
-    </section>
-    <section class="panel">
-      <label for="log">&#28040;&#24687;&#26085;&#24535;</label>
-      <div id="log" aria-live="polite"></div>
-    </section>
-  </main>
+  <div class="webview-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">A</div>
+        <div class="brand-copy">
+          <h1>AutoGen Code</h1>
+          <p>Control panel skeleton</p>
+        </div>
+      </div>
+      <span class="status-pill">Task 2A</span>
+    </header>
+
+    <nav class="tabs" aria-label="AutoGen sections">
+      <button class="tab active" type="button" data-tab="run">Run</button>
+      <button class="tab" type="button" data-tab="agents">Agents</button>
+      <button class="tab" type="button" data-tab="team">Team</button>
+      <button class="tab" type="button" data-tab="tools">Tools</button>
+      <button class="tab" type="button" data-tab="workflow">Workflow</button>
+      <button class="tab" type="button" data-tab="settings">Settings</button>
+    </nav>
+
+    <main class="content">
+      <section class="panel active" data-panel="run">
+        <article class="placeholder-card">
+          <div>
+            <p class="eyebrow">Active workspace</p>
+            <h2>Run</h2>
+            <p>任务执行、Agent 消息、Tool Call、Patch、Command Approval 会显示在这里。</p>
+          </div>
+          <label class="field">
+            <span>Task request</span>
+            <textarea id="taskInput">请创建一个 Task 2A 测试任务。</textarea>
+          </label>
+          <div class="actions">
+            <button class="primary-action" type="button" data-action="task.create">发送测试任务</button>
+            <span id="status" class="inline-status">Ready</span>
+          </div>
+        </article>
+
+        <article class="log-card">
+          <div class="card-head">
+            <h3>Message Log</h3>
+            <span class="mini-label">placeholder response</span>
+          </div>
+          <div id="log" class="log" aria-live="polite"></div>
+        </article>
+      </section>
+
+      <section class="panel" data-panel="agents">
+        <article class="placeholder-card">
+          <p class="eyebrow">Configuration</p>
+          <h2>Agents</h2>
+          <p>Agent 配置页面占位。</p>
+        </article>
+      </section>
+
+      <section class="panel" data-panel="team">
+        <article class="placeholder-card">
+          <p class="eyebrow">Collaboration</p>
+          <h2>Team</h2>
+          <p>多 Agent Team 配置页面占位。</p>
+        </article>
+      </section>
+
+      <section class="panel" data-panel="tools">
+        <article class="placeholder-card">
+          <p class="eyebrow">Safety</p>
+          <h2>Tools</h2>
+          <p>工具权限矩阵页面占位。</p>
+        </article>
+      </section>
+
+      <section class="panel" data-panel="workflow">
+        <article class="placeholder-card">
+          <p class="eyebrow">Orchestration</p>
+          <h2>Workflow</h2>
+          <p>工作流编排页面占位。</p>
+        </article>
+      </section>
+
+      <section class="panel" data-panel="settings">
+        <article class="placeholder-card">
+          <p class="eyebrow">Runtime</p>
+          <h2>Settings</h2>
+          <p>模型和 Runtime 设置页面占位。</p>
+        </article>
+      </section>
+    </main>
+  </div>
   <!-- SCRIPT_PLACEHOLDER -->
 </body>
 </html>

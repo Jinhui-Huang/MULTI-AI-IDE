@@ -62,16 +62,19 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
     const htmlUri = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'webview.html');
     let html = await fs.readFile(htmlUri.fsPath, 'utf8');
     const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const style = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'webview.css'));
     const bridge = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'webview-bridge.js'));
     const csp = "default-src 'none'; img-src " + webview.cspSource + " data:; style-src " + webview.cspSource + " 'unsafe-inline'; script-src 'nonce-" + nonce + "'; font-src " + webview.cspSource;
     const cspMeta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
+    const styleTag = `<link nonce="${nonce}" rel="stylesheet" href="${style}">`;
     const scriptTag = `<script nonce="${nonce}" src="${bridge}"></script>`;
 
-    if (!html.includes('<!-- CSP_PLACEHOLDER -->') || !html.includes('<!-- SCRIPT_PLACEHOLDER -->')) {
-      throw new Error('media/webview.html must include CSP_PLACEHOLDER and SCRIPT_PLACEHOLDER comments');
+    if (!html.includes('<!-- CSP_PLACEHOLDER -->') || !html.includes('<!-- STYLE_PLACEHOLDER -->') || !html.includes('<!-- SCRIPT_PLACEHOLDER -->')) {
+      throw new Error('media/webview.html must include CSP_PLACEHOLDER, STYLE_PLACEHOLDER, and SCRIPT_PLACEHOLDER comments');
     }
 
     html = html.replace('<!-- CSP_PLACEHOLDER -->', cspMeta);
+    html = html.replace('<!-- STYLE_PLACEHOLDER -->', styleTag);
     html = html.replace('<!-- SCRIPT_PLACEHOLDER -->', scriptTag);
     return html;
   }
