@@ -3,562 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AutoGen Full Control UI - Complete Config Details</title>
+  <title>AutoGen Control Panel</title>
   <style>
     :root {
-      --bg: #191817;
-      --surface: #22211f;
-      --surface-2: #2a2926;
-      --surface-3: #33312d;
-      --elevated: #272522;
-      --line: #3b3934;
-      --line-soft: rgba(255,255,255,.075);
-      --text: #f4eee7;
-      --muted: #a9a097;
-      --faint: #7d746c;
-      --accent: #d97757;
-      --accent-2: #f0a37c;
-      --accent-soft: rgba(217,119,87,.14);
-      --green: #7fbe8c;
-      --yellow: #e5c07b;
-      --red: #e87979;
-      --purple: #c5a3ff;
-      --blue: #8fb4ff;
-      --input: #2b2925;
-      --shadow: rgba(0, 0, 0, .38);
-      --radius: 16px;
-      --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", Arial, sans-serif;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --bg: #151515;
+      --panel: #202020;
+      --border: #343434;
+      --text: #f2f2f2;
+      --muted: #a8a8a8;
+      --accent: #4ea1f3;
+      --accent-strong: #70b7ff;
+      --error: #ff8585;
+      --ok: #7bd88f;
+      font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at top, #2a211d 0, #10100f 46%, #0d0d0c 100%);
-      color: var(--text);
-      font-family: var(--font);
-      display: grid;
-      place-items: center;
+      padding: 16px;
+      background: var(--vscode-sideBar-background, var(--bg));
+      color: var(--vscode-sideBar-foreground, var(--text));
     }
-    .webview {
-      width: 430px;
-      height: 932px;
-      background: var(--bg);
-      border: 1px solid #2b2924;
-      box-shadow: 0 22px 70px var(--shadow);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
-    .topbar {
-      height: 52px;
-      background: rgba(34,33,31,.95);
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      flex: 0 0 auto;
-    }
-    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .logo { width: 28px; height: 28px; border-radius: 10px; background: linear-gradient(145deg, #c45f3d, #eea06f); color: #231611; display: grid; place-items: center; font-size: 13px; font-weight: 900; box-shadow: inset 0 1px 0 rgba(255,255,255,.24), 0 8px 20px rgba(217,119,87,.18); }
-    .brand-title { font-size: 14px; font-weight: 760; white-space: nowrap; }
-    .brand-sub { margin-top: 2px; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 178px; }
-    .top-actions { display: flex; align-items: center; gap: 7px; }
-    .mini-btn, .icon-btn { height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--muted); font-size: 12px; cursor: pointer; }
-    .icon-btn { width: 28px; padding: 0; display: grid; place-items: center; }
-    .mini-btn.primary { background: var(--accent-soft); color: var(--accent-2); border-color: rgba(217,119,87,.35); }
-    .mini-btn.green { background: rgba(127,190,140,.10); color: var(--green); border-color: rgba(127,190,140,.22); }
-    .tabs { height: 48px; flex: 0 0 auto; display: flex; gap: 6px; padding: 8px 10px; background: rgba(25,24,23,.94); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { flex: 0 0 auto; height: 32px; padding: 0 11px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; border: 1px solid transparent; background: transparent; cursor: pointer; white-space: nowrap; }
-    .tab.active { background: #2f2b26; color: var(--text); border-color: rgba(240,163,124,.26); box-shadow: inset 0 0 0 1px rgba(255,255,255,.015); }
-    .content { flex: 1; min-height: 0; overflow: hidden; }
-    .page { height: 100%; overflow: auto; padding: 12px 12px 96px; display: none; }
-    .page.active { display: block; }
-    .page::-webkit-scrollbar { width: 8px; }
-    .page::-webkit-scrollbar-thumb { background: #3a3732; border-radius: 999px; }
-    .section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 0 rgba(255,255,255,.03); }
-    .section-head { min-height: 43px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--line-soft); background: rgba(255,255,255,.018); }
-    .section-title { font-size: 13px; font-weight: 780; letter-spacing: .05px; }
-    .section-action { display: flex; gap: 7px; align-items: center; flex: 0 0 auto; }
-    .section-body { padding: 12px; }
-    textarea, input, select { width: 100%; border: 1px solid var(--line); outline: none; background: var(--input); color: var(--text); border-radius: 12px; padding: 10px 11px; font-family: var(--font); font-size: 13px; }
-    textarea { min-height: 84px; resize: vertical; line-height: 1.48; }
-    label { display: block; color: var(--muted); font-size: 11px; margin: 0 0 6px; }
-    .field { margin-bottom: 10px; }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
-    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); font-size: 11px; }
-    .chip.active { color: var(--accent-2); background: var(--accent-soft); border-color: rgba(217,119,87,.34); }
-    .chip.green { color: var(--green); background: rgba(127,190,140,.10); border-color: rgba(127,190,140,.22); }
-    .primary-action { width: 100%; height: 39px; border: 0; border-radius: 13px; margin-top: 11px; background: #d97757; color: #211512; font-weight: 800; font-size: 13px; box-shadow: 0 8px 18px rgba(217,119,87,.18); cursor: pointer; }
-    .message { display: grid; grid-template-columns: 29px 1fr; gap: 9px; padding: 12px; border-bottom: 1px solid var(--line-soft); }
-    .message:last-child { border-bottom: 0; }
-    .avatar { width: 29px; height: 29px; border-radius: 10px; background: #332b25; color: var(--accent-2); display: grid; place-items: center; font-size: 11px; font-weight: 850; border: 1px solid rgba(240,163,124,.18); }
-    .avatar.user { background: #2a2d26; color: var(--green); border-color: rgba(127,190,140,.2); }
-    .avatar.dev { color: var(--blue); border-color: rgba(143,180,255,.22); }
-    .msg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; gap: 10px; }
-    .msg-name { font-size: 12px; font-weight: 800; }
-    .msg-time { color: var(--faint); font-size: 11px; }
-    .msg-text { color: #e9e1d7; font-size: 13px; line-height: 1.55; }
-    .muted { color: var(--muted); }
-    .mono { font-family: var(--mono); }
-    .plan-card, .tool-card, .diff-card, .agent-card, .workflow-node, .notice, .config-card { background: var(--elevated); border: 1px solid var(--line); border-radius: 14px; }
-    .plan-card { margin-top: 9px; padding: 11px; }
-    .plan-title { font-size: 12px; font-weight: 780; margin-bottom: 8px; color: var(--accent-2); }
-    .steps { display: grid; gap: 7px; }
-    .step-row { display: flex; gap: 8px; color: var(--muted); font-size: 12px; line-height: 1.4; }
-    .num { width: 18px; height: 18px; border-radius: 50%; background: #3a342f; color: var(--accent-2); flex: 0 0 auto; display: grid; place-items: center; font-size: 10px; }
-    .card-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .btn { height: 32px; padding: 0 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 12px; font-weight: 650; cursor: pointer; }
-    .btn.primary { background: var(--accent); color: #211512; border-color: #e28c6c; }
-    .btn.ghost { color: var(--muted); }
-    .btn.danger { color: var(--red); }
-    .btn.green { color: var(--green); }
-    .btn.block { width: 100%; }
-    .tool-card { margin-top: 9px; overflow: hidden; }
-    .tool-head { padding: 9px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line-soft); }
-    .tool-title { font-size: 12px; font-weight: 760; }
-    .tool-body { padding: 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-    .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 4px 8px; background: var(--surface-2); border: 1px solid var(--line); color: var(--muted); font-size: 11px; white-space: nowrap; }
-    .pill.green { color: var(--green); background: rgba(127,190,140,.10); border-color: rgba(127,190,140,.23); }
-    .pill.yellow { color: var(--yellow); background: rgba(229,192,123,.10); border-color: rgba(229,192,123,.22); }
-    .pill.red { color: var(--red); background: rgba(232,121,121,.10); border-color: rgba(232,121,121,.22); }
-    .pill.accent { color: var(--accent-2); background: var(--accent-soft); border-color: rgba(217,119,87,.32); }
-    .pill.blue { color: var(--blue); background: rgba(143,180,255,.09); border-color: rgba(143,180,255,.22); }
-    .blue { color: var(--blue); } .green { color: var(--green); } .yellow { color: var(--yellow); } .red { color: var(--red); } .purple { color: var(--purple); }
-    .diff-card { overflow: hidden; margin-top: 9px; }
-    .diff-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--line-soft); font-size: 12px; align-items: center; }
-    .diff-row:last-child { border-bottom: 0; }
-    .file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e9e1d7; }
-    .add { color: var(--green); } .edit { color: var(--yellow); }
-    .agent-grid { display: grid; gap: 10px; }
-    .agent-card { padding: 11px; }
-    .agent-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-    .agent-name { font-weight: 800; font-size: 13px; }
-    .agent-desc { color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .agent-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .agent-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 7px; margin-top: 10px; }
-    .team-line { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
-    .team-node { flex: 0 0 auto; min-width: 95px; padding: 10px; border-radius: 14px; background: var(--elevated); border: 1px solid var(--line); text-align: center; position: relative; }
-    .team-node strong { display: block; font-size: 12px; margin-bottom: 4px; }
-    .team-node span { color: var(--muted); font-size: 11px; }
-    .team-node .handle { position:absolute; right:6px; top:4px; color:var(--faint); font-size:12px; }
-    .arrow { color: var(--faint); font-size: 16px; text-align: center; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; overflow: hidden; border-radius: 12px; }
-    th, td { border-bottom: 1px solid var(--line-soft); padding: 8px 6px; text-align: center; color: var(--muted); }
-    th:first-child, td:first-child { text-align: left; color: var(--text); }
-    th { color: var(--faint); font-weight: 650; background: rgba(255,255,255,.018); }
-    tr:last-child td { border-bottom: 0; }
-    .perm { cursor: pointer; border-radius: 8px; padding: 4px 6px; display: inline-flex; }
-    .perm.allow { color: var(--green); background: rgba(127,190,140,.09); }
-    .perm.confirm { color: var(--yellow); background: rgba(229,192,123,.10); }
-    .perm.deny { color: var(--faint); }
-    .perm.ro { color: var(--blue); background: rgba(143,180,255,.08); }
-    .notice { padding: 10px 11px; color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
-    .workflow-node { padding: 11px; margin-bottom: 8px; }
-    .node-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .node-head strong { font-size: 13px; }
-    .node-body { color: var(--muted); font-size: 12px; line-height: 1.45; }
-    .kv-row, .checkbox-row { min-height: 34px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--line-soft); color: var(--muted); font-size: 12px; }
-    .kv-row:last-child, .checkbox-row:last-child { border-bottom: 0; }
-    .box { width: 16px; height: 16px; border-radius: 5px; border: 1px solid var(--line); display: inline-grid; place-items: center; margin-right: 8px; font-size: 10px; vertical-align: -3px; }
-    .box.checked { background: var(--accent-soft); color: var(--accent-2); border-color: rgba(217,119,87,.33); }
-    .bottom-compose { position: absolute; left: 0; right: 0; bottom: 24px; padding: 9px 10px; background: rgba(25,24,23,.94); border-top: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
-    .compose-input { flex: 1; min-height: 40px; border-radius: 14px; background: var(--input); border: 1px solid var(--line); padding: 10px 12px; color: var(--muted); font-size: 12px; display: flex; align-items: center; }
-    .send-circle { width: 40px; height: 40px; border-radius: 14px; border: 0; background: var(--accent); color: #211512; font-size: 18px; font-weight: 900; cursor: pointer; }
-    .bottom-status { position: absolute; left: 0; right: 0; bottom: 0; height: 24px; background: #141312; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; color: var(--faint); font-size: 11px; }
-    .toolbar { display:flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
-    .split { display:grid; grid-template-columns: 1fr; gap:10px; }
-    .config-card { padding: 11px; margin-bottom: 10px; }
-    .modal-backdrop { position:absolute; inset:0; background:rgba(0,0,0,.48); display:none; align-items:flex-end; z-index:20; }
-    .modal-backdrop.active { display:flex; }
-    .modal { width:100%; max-height:72%; overflow:auto; background:var(--surface); border-top:1px solid var(--line); border-radius: 22px 22px 0 0; box-shadow:0 -18px 60px rgba(0,0,0,.4); }
-    .modal-head { display:flex; justify-content:space-between; align-items:center; padding:14px 14px 10px; border-bottom:1px solid var(--line-soft); }
-    .modal-title { font-size:14px; font-weight:800; }
-    .modal-body { padding:12px; }
-    .drawer-list { display:grid; gap:8px; }
-    .mini-row { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 10px; background:var(--elevated); border:1px solid var(--line); border-radius:12px; font-size:12px; color:var(--muted); }
-    .save-bar { display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:10px; }
-    .footer-note { color:var(--faint); font-size:11px; line-height:1.45; margin-top:8px; }
 
-    .switch-row { display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:34px; padding:7px 0; border-bottom:1px solid var(--line-soft); color:var(--muted); font-size:12px; }
-    .switch-row:last-child { border-bottom:0; }
-    .toggle { width:36px; height:20px; border-radius:999px; background:var(--surface-3); border:1px solid var(--line); position:relative; flex:0 0 auto; }
-    .toggle::after { content:""; position:absolute; width:14px; height:14px; border-radius:50%; left:3px; top:2px; background:var(--faint); }
-    .toggle.on { background:var(--accent-soft); border-color:rgba(217,119,87,.35); }
-    .toggle.on::after { left:17px; background:var(--accent-2); }
-    .codebox { min-height:84px; border-radius:12px; border:1px solid var(--line); background:#171614; color:#d8cfc5; font-family:var(--mono); font-size:11px; line-height:1.45; padding:10px; overflow:auto; white-space:pre-wrap; }
-    .danger-zone { border-color:rgba(232,121,121,.28); background:rgba(232,121,121,.045); }
-    .subgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
-    @media (max-width: 460px) { body { display:block; background:var(--bg); } .webview { width:100vw; height:100vh; border:0; box-shadow:none; } }
+    main {
+      display: grid;
+      gap: 12px;
+      max-width: 720px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .panel {
+      border: 1px solid var(--vscode-panel-border, var(--border));
+      background: var(--vscode-editor-background, var(--panel));
+      border-radius: 6px;
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      color: var(--vscode-descriptionForeground, var(--muted));
+      font-size: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      border: 1px solid var(--vscode-input-border, var(--border));
+      border-radius: 4px;
+      padding: 8px;
+      color: var(--vscode-input-foreground, var(--text));
+      background: var(--vscode-input-background, #111);
+      font: inherit;
+    }
+
+    button {
+      justify-self: start;
+      border: 1px solid var(--vscode-button-border, transparent);
+      border-radius: 4px;
+      padding: 7px 12px;
+      color: var(--vscode-button-foreground, #fff);
+      background: var(--vscode-button-background, var(--accent));
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--vscode-button-hoverBackground, var(--accent-strong));
+    }
+
+    #status {
+      color: var(--vscode-descriptionForeground, var(--muted));
+      min-height: 18px;
+      font-size: 12px;
+    }
+
+    #log {
+      min-height: 120px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--vscode-editor-font-family, Consolas, monospace);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .ok {
+      color: var(--ok);
+    }
+
+    .error {
+      color: var(--error);
+    }
   </style>
 </head>
 <body>
-  <div class="webview">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">A</div>
-        <div>
-          <div class="brand-title">AutoGen Code</div>
-          <div class="brand-sub">mall-springboot · main · Java Team</div>
-        </div>
-      </div>
-      <div class="top-actions">
-        <button class="mini-btn green" data-modal="runtimeModal">运行中</button>
-        <button class="mini-btn" data-modal="taskControlModal">暂停</button>
-        <button class="icon-btn" data-modal="quickMenuModal">⋯</button>
-      </div>
-    </header>
-
-    <nav class="tabs">
-      <button class="tab active" data-tab="run">Run</button>
-      <button class="tab" data-tab="agents">Agents</button>
-      <button class="tab" data-tab="team">Team</button>
-      <button class="tab" data-tab="tools">Tools</button>
-      <button class="tab" data-tab="workflow">Workflow</button>
-      <button class="tab" data-tab="settings">Settings</button>
-    </nav>
-
-    <main class="content">
-      <section class="page active" id="run">
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">New Task</div>
-            <div class="section-action"><button class="btn ghost" data-modal="historyModal">历史</button><button class="btn ghost" data-modal="contextModal">上下文</button></div>
-          </div>
-          <div class="section-body">
-            <div class="two">
-              <div><label>Team</label><select><option>Java Spring Boot Team</option><option>Frontend React Team</option><option>RAG Doc Team</option></select></div>
-              <div><label>Workflow</label><select><option>Code Edit</option><option>Bug Fix</option><option>Test Generation</option><option>Explain Code</option></select></div>
-            </div>
-            <div class="two">
-              <div><label>Mode</label><select><option>半自动：确认计划 / Diff / 命令</option><option>自动：只阻塞高危操作</option><option>手动：每步都确认</option></select></div>
-              <div><label>Target Agent</label><select><option>Auto Router</option><option>PlannerAgent</option><option>DeveloperAgent</option><option>ReviewerAgent</option></select></div>
-            </div>
-            <label>Task Request</label>
-            <textarea>帮我给当前 Spring Boot 项目增加 JWT 登录接口，生成 Controller、Service、DTO，并补充测试。</textarea>
-            <div class="chips">
-              <span class="chip active">@当前文件</span><span class="chip active">@Git diff</span><span class="chip">@选中代码</span><span class="chip">@终端错误</span><span class="chip" data-modal="contextModal">+ 添加文件</span>
-            </div>
-            <button class="primary-action">发送给 AutoGen Team</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-head">
-            <div class="section-title">Task Control</div>
-            <div class="section-action"><span class="pill yellow">Step 3 / 8</span></div>
-          </div>
-          <div class="section-body">
-            <div class="toolbar">
-              <button class="btn" data-modal="taskControlModal">继续</button>
-              <button class="btn">暂停</button>
-              <button class="btn danger">终止</button>
-              <button class="btn">重跑当前 Agent</button>
-              <button class="btn ghost">切换 Agent</button>
-            </div>
-            <div class="notice">当前阻塞点：DeveloperAgent 生成 Patch 后，将等待用户确认 Diff。所有命令执行前也会单独弹出确认。</div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="section-head"><div class="section-title">Conversation / Execution</div><div class="section-action"><button class="btn ghost">复制日志</button></div></div>
-          <div class="message">
-            <div class="avatar user">U</div>
-            <div><div class="msg-head"><span class="msg-name">You</span><span class="msg-time">03:12</span></div><div class="msg-text">增加 JWT 登录接口，修改前需要确认 diff。</div></div>
-          </div>
-          <div class="message">
-            <div class="avatar">PM</div>
-            <div>
-              <div class="msg-head"><span class="msg-name">PlannerAgent</span><span class="msg-time">03:13</span></div>
-              <div class="msg-text">我会先读取项目结构和安全配置，再生成最小改动方案。</div>
-              <div class="plan-card">
-                <div class="plan-title">Plan Approval Required</div>
-                <div class="steps">
-                  <div class="step-row"><span class="num">1</span><span>读取 pom.xml、UserController、SecurityConfig。</span></div>
-                  <div class="step-row"><span class="num">2</span><span>新增 LoginRequest、AuthService、AuthController。</span></div>
-                  <div class="step-row"><span class="num">3</span><span>生成 unified diff patch，并等待用户确认。</span></div>
-                  <div class="step-row"><span class="num">4</span><span>执行 mvn test，失败则回到 DeveloperAgent 修复。</span></div>
-                </div>
-                <div class="card-actions"><button class="btn primary">接受计划</button><button class="btn" data-modal="revisePlanModal">调整计划</button><button class="btn ghost" data-modal="saveTemplateModal">保存为模板</button></div>
-              </div>
-            </div>
-          </div>
-          <div class="message">
-            <div class="avatar dev">CB</div>
-            <div>
-              <div class="msg-head"><span class="msg-name">CodebaseAgent</span><span class="msg-time">03:14</span></div>
-              <div class="tool-card">
-                <div class="tool-head"><div class="tool-title">Tool Call · read_file</div><span class="pill green">success</span></div>
-                <div class="tool-body"><span class="mono">pom.xml</span>、<span class="mono">SecurityConfig.java</span> 已读取。检测到 Spring Boot 3.x + MyBatis-Plus。</div>
-              </div>
-            </div>
-          </div>
-          <div class="message">
-            <div class="avatar dev">DEV</div>
-            <div>
-              <div class="msg-head"><span class="msg-name">DeveloperAgent</span><span class="msg-time">03:15</span></div>
-              <div class="msg-text">我准备生成 Patch，涉及 5 个文件。</div>
-              <div class="diff-card">
-                <div class="diff-row"><span class="file">src/main/java/.../AuthController.java</span><span class="add">+ 新增</span></div>
-                <div class="diff-row"><span class="file">src/main/java/.../AuthService.java</span><span class="add">+ 新增</span></div>
-                <div class="diff-row"><span class="file">src/main/java/.../JwtUtil.java</span><span class="add">+ 新增</span></div>
-                <div class="diff-row"><span class="file">pom.xml</span><span class="edit">~ 修改</span></div>
-                <div class="diff-row"><span class="file">src/test/java/.../AuthControllerTest.java</span><span class="add">+ 新增</span></div>
-              </div>
-              <div class="card-actions"><button class="btn primary" data-modal="diffModal">查看 Diff</button><button class="btn green">应用 Patch</button><button class="btn" data-modal="rejectPatchModal">拒绝并说明</button><button class="btn ghost" data-modal="partialPatchModal">部分应用</button><button class="btn ghost" data-modal="explainDiffModal">让 AI 解释</button></div>
-            </div>
-          </div>
-          <div class="message">
-            <div class="avatar">TS</div>
-            <div>
-              <div class="msg-head"><span class="msg-name">TesterAgent</span><span class="msg-time">等待中</span></div>
-              <div class="tool-card">
-                <div class="tool-head"><div class="tool-title">Command Approval Required</div><span class="pill yellow">confirm</span></div>
-                <div class="tool-body">请求执行：<span class="mono">mvn test</span></div>
-                <div class="card-actions"><button class="btn primary">允许一次</button><button class="btn">加入白名单</button><button class="btn danger">拒绝</button></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="agents">
-        <div class="section">
-          <div class="section-head"><div class="section-title">Agent List</div><div class="section-action"><button class="btn primary">+ 新增</button><button class="btn ghost">导入</button></div></div>
-          <div class="section-body agent-grid">
-            <div class="agent-card"><div class="agent-top"><div><div class="agent-name">PlannerAgent</div><div class="agent-desc">需求拆分、输出计划、决定需要读取哪些文件。</div></div><span class="pill green">启用</span></div><div class="agent-meta"><span class="pill">gpt-4.1-mini</span><span class="pill">max_turns 2</span><span class="pill">无写入权限</span></div><div class="agent-actions"><button class="btn">编辑</button><button class="btn">复制</button><button class="btn danger">禁用</button></div></div>
-            <div class="agent-card"><div class="agent-top"><div><div class="agent-name">DeveloperAgent</div><div class="agent-desc">根据项目上下文生成 unified diff patch。</div></div><span class="pill green">启用</span></div><div class="agent-meta"><span class="pill accent">gpt-4.1</span><span class="pill">read/search/patch</span><span class="pill yellow">patch only</span></div><div class="agent-actions"><button class="btn">编辑</button><button class="btn">复制</button><button class="btn">测试</button></div></div>
-            <div class="agent-card"><div class="agent-top"><div><div class="agent-name">ReviewerAgent</div><div class="agent-desc">审查安全、风格、编译风险和测试覆盖。</div></div><span class="pill green">启用</span></div><div class="agent-meta"><span class="pill">gpt-4.1</span><span class="pill">read-only</span><span class="pill">max_tool_calls 8</span></div><div class="agent-actions"><button class="btn">编辑</button><button class="btn">复制</button><button class="btn danger">删除</button></div></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Edit Agent · DeveloperAgent</div><div class="section-action"><button class="btn ghost">重置</button><button class="btn primary">保存 Agent</button></div></div>
-          <div class="section-body">
-            <div class="two"><div><label>Agent Name</label><input value="DeveloperAgent" /></div><div><label>Role</label><select><option>Developer</option><option>Planner</option><option>Reviewer</option><option>Tester</option></select></div></div>
-            <div class="field"><label>Agent Description</label><input value="根据项目上下文生成可审查的 unified diff patch，只提出变更，不直接写入文件。" /></div>
-            <div class="two"><div><label>Model</label><select><option>gpt-4.1</option><option>gpt-4.1-mini</option><option>qwen2.5-coder:7b</option></select></div><div><label>Temperature</label><input value="0.2" /></div></div>
-            <div class="three"><div><label>max_turns</label><input value="8" /></div><div><label>max_tool_calls</label><input value="20" /></div><div><label>timeout/s</label><input value="180" /></div></div>
-            <div class="field"><label>System Prompt</label><textarea>你是企业 Java Spring Boot 开发 Agent。你必须基于已有项目结构生成 unified diff patch。禁止直接覆盖完整项目，禁止访问 workspace 外文件。</textarea></div>
-            <div class="two"><div><label>Response Format</label><select><option>Structured JSON + Patch</option><option>Markdown</option><option>Plain Text</option><option>Tool-only</option></select></div><div><label>Stop Condition</label><select><option>patch_proposed</option><option>TERMINATE keyword</option><option>max_turns reached</option><option>human approval required</option></select></div></div>
-            <div class="field"><label>Output JSON Schema</label><div class="codebox">{
-  "summary": "string",
-  "files": ["string"],
-  "patch": "unified-diff",
-  "riskLevel": "low|medium|high",
-  "needsApproval": true
-}</div></div>
-            <div class="field"><label>Tools</label><div class="chips"><span class="chip active">read_file</span><span class="chip active">search_code</span><span class="chip active">propose_patch</span><span class="chip">run_command</span><span class="chip">apply_patch</span><span class="chip">git_diff</span></div></div>
-            <div class="field"><label>Context Scope</label><div class="chips"><span class="chip active">任务计划</span><span class="chip active">相关文件</span><span class="chip active">代码库摘要</span><span class="chip">终端输出</span><span class="chip">完整历史</span></div></div>
-            <div class="save-bar"><button class="btn block">测试 Agent</button><button class="btn primary block">保存 Agent</button></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="team">
-        <div class="section">
-          <div class="section-head"><div class="section-title">Team Manager</div><div class="section-action"><button class="btn primary">+ 新增 Team</button><button class="btn ghost">复制</button><button class="btn ghost">设为默认</button><button class="btn danger">删除</button></div></div>
-          <div class="section-body">
-            <div class="two"><div><label>Team Name</label><input value="Java Spring Boot Team" /></div><div><label>Team Mode</label><select><option>Sequential WorkflowRunner</option><option>RoundRobinGroupChat</option><option>SelectorGroupChat</option><option>Manual</option></select></div></div>
-            <div class="three"><div><label>max_turns</label><input value="18" /></div><div><label>retry_limit</label><input value="2" /></div><div><label>termination</label><select><option>SummaryAgent done</option><option>Keyword TERMINATE</option><option>User stop</option></select></div></div>
-            <div class="two"><div><label>Execution</label><select><option>串行执行</option><option>Planner/Codebase 并行</option><option>Review/Test 并行</option></select></div><div><label>Team Model Override</label><select><option>使用各 Agent 自己的模型</option><option>全部使用默认模型</option><option>代码 Agent 使用强模型，其他用 mini</option></select></div></div>
-            <div class="team-line">
-              <div class="team-node"><span class="handle">⋮⋮</span><strong>Planner</strong><span>plan</span></div><div class="arrow">→</div>
-              <div class="team-node"><span class="handle">⋮⋮</span><strong>Codebase</strong><span>read/search</span></div><div class="arrow">→</div>
-              <div class="team-node"><span class="handle">⋮⋮</span><strong>Developer</strong><span>patch</span></div><div class="arrow">→</div>
-              <div class="team-node"><span class="handle">⋮⋮</span><strong>Reviewer</strong><span>review</span></div><div class="arrow">→</div>
-              <div class="team-node"><span class="handle">⋮⋮</span><strong>Tester</strong><span>test</span></div>
-            </div>
-            <div class="toolbar"><button class="btn">添加 Agent</button><button class="btn">移除选中</button><button class="btn">上移</button><button class="btn">下移</button><button class="btn primary">保存 Team</button></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Built-in Team Templates</div><div class="section-action"><button class="btn ghost">恢复默认</button></div></div>
-          <div class="section-body drawer-list">
-            <div class="mini-row"><span>Java Spring Boot Team</span><span class="pill green">当前</span></div>
-            <div class="mini-row"><span>Frontend React Team</span><button class="btn">使用</button></div>
-            <div class="mini-row"><span>Bug Fix Team</span><button class="btn">使用</button></div>
-            <div class="mini-row"><span>RAG Doc Team</span><button class="btn">使用</button></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="tools">
-        <div class="section">
-          <div class="section-head"><div class="section-title">Tool Permission Matrix</div><div class="section-action"><button class="btn ghost">批量编辑</button><button class="btn primary">保存权限</button></div></div>
-          <div class="section-body">
-            <table>
-              <thead><tr><th>Tool</th><th>Plan</th><th>Code</th><th>Dev</th><th>Review</th><th>Test</th></tr></thead>
-              <tbody>
-                <tr><td>list_files</td><td><span class="perm deny">—</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm deny">—</span></td></tr>
-                <tr><td>read_file</td><td><span class="perm deny">—</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm deny">—</span></td></tr>
-                <tr><td>search_code</td><td><span class="perm deny">—</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm allow">✓</span></td><td><span class="perm deny">—</span></td></tr>
-                <tr><td>propose_patch</td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td><td><span class="perm allow">✓</span></td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td></tr>
-                <tr><td>apply_patch</td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td><td><span class="perm confirm">确认</span></td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td></tr>
-                <tr><td>run_command</td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td><td><span class="perm deny">—</span></td><td><span class="perm confirm">确认</span></td></tr>
-                <tr><td>git_diff</td><td><span class="perm deny">—</span></td><td><span class="perm ro">只读</span></td><td><span class="perm ro">只读</span></td><td><span class="perm ro">只读</span></td><td><span class="perm ro">只读</span></td></tr>
-              </tbody>
-            </table>
-            <div class="footer-note">点击矩阵单元格循环切换：禁用 → 允许 → 需确认 → 只读 → 白名单。</div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Global Safety</div><div class="section-action"><button class="btn primary">保存全局安全</button></div></div>
-          <div class="section-body">
-            <div class="switch-row"><span>禁止访问 workspace 外文件</span><span class="toggle on"></span></div>
-            <div class="switch-row"><span>禁止直接写文件，只允许 propose_patch</span><span class="toggle on"></span></div>
-            <div class="switch-row"><span>apply_patch 必须人工确认</span><span class="toggle on"></span></div>
-            <div class="switch-row"><span>run_command 必须人工确认</span><span class="toggle on"></span></div>
-            <div class="switch-row"><span>危险工具全局禁止：网络下载 / 发布 / 删除</span><span class="toggle on"></span></div>
-            <div class="switch-row"><span>记录完整工具调用日志</span><span class="toggle on"></span></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Tool Registry</div><div class="section-action"><button class="btn primary">+ 新增工具</button><button class="btn">测试工具</button></div></div>
-          <div class="section-body">
-            <div class="drawer-list">
-              <div class="mini-row"><span><b>read_file</b> · 参数：path</span><button class="btn" data-modal="toolSchemaModal">Schema</button></div>
-              <div class="mini-row"><span><b>search_code</b> · 参数：query, glob</span><button class="btn" data-modal="toolSchemaModal">Schema</button></div>
-              <div class="mini-row"><span><b>run_command</b> · 参数：command</span><button class="btn" data-modal="toolSchemaModal">Schema</button></div>
-            </div>
-            <div class="field" style="margin-top:10px"><label>Selected Tool Parameters</label><div class="codebox">{
-  "name": "read_file",
-  "description": "读取 workspace 内文件",
-  "parameters": {
-    "path": { "type": "string", "required": true }
-  },
-  "returns": { "content": "string", "truncated": "boolean" }
-}</div></div>
-            <div class="field"><label>Tool Result Preview</label><div class="codebox">read_file("pom.xml") → 读取成功，4210 chars，已截断敏感字段：0。</div></div>
-            <div class="switch-row"><span>该工具调用结果写入任务日志</span><span class="toggle on"></span></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Command / File Safety</div><div class="section-action"><button class="btn primary">保存</button></div></div>
-          <div class="section-body">
-            <label>Command Allowlist</label><div class="chips"><span class="chip active">mvn test</span><span class="chip active">gradle test</span><span class="chip active">npm test</span><span class="chip active">pnpm build</span><span class="chip">python -m pytest</span><span class="chip">+ 添加</span></div>
-            <label style="margin-top:10px">Command Blocklist</label><div class="chips"><span class="chip active">rm</span><span class="chip active">del</span><span class="chip active">format</span><span class="chip active">curl</span><span class="chip active">ssh</span><span class="chip active">git push</span><span class="chip active">npm publish</span></div>
-            <label style="margin-top:10px">Sensitive File Blocklist</label><div class="chips"><span class="chip active">.env</span><span class="chip active">*.pem</span><span class="chip active">id_rsa</span><span class="chip active">credentials.json</span><span class="chip active">application-prod.yml</span><span class="chip">+ 添加</span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="workflow">
-        <div class="section">
-          <div class="section-head"><div class="section-title">Workflow Builder · Code Edit</div><div class="section-action"><button class="btn">测试运行</button><button class="btn ghost">导入 JSON</button><button class="btn ghost">导出 JSON</button><button class="btn ghost">设为默认</button><button class="btn ghost">另存模板</button><button class="btn primary">保存 Workflow</button></div></div>
-          <div class="section-body">
-            <div class="two"><div><label>Workflow Name</label><input value="Code Edit Workflow" /></div><div><label>Workflow Type</label><select><option>Code Edit</option><option>Bug Fix</option><option>Test Generation</option><option>Explain Code</option></select></div></div>
-            <div class="field"><label>Workflow Description</label><input value="用于代码修改任务：计划 → 代码分析 → 生成 Patch → 人工确认 → 测试 → 修复循环。" /></div>
-            <div class="two"><div><label>Failure Strategy</label><select><option>回到上一 Agent</option><option>终止并等待用户</option><option>跳过当前节点</option></select></div><div><label>Workflow JSON Version</label><input value="v1.0" /></div></div>
-            <div class="three"><div><label>Retry Limit</label><input value="2" /></div><div><label>Node Timeout</label><input value="180s" /></div><div><label>Confirm Policy</label><select><option>Plan + Patch + Command</option><option>Patch + Command</option><option>Command Only</option></select></div></div>
-            <div class="flow">
-              <div class="workflow-node"><div class="node-head"><strong>User Request</strong><span class="pill">input</span></div><div class="node-body">输入：任务文本、@ 文件引用、workspace、Git diff。</div><div class="toolbar"><button class="btn">编辑节点</button><button class="btn">添加后置</button></div></div>
-              <div class="arrow">↓</div>
-              <div class="workflow-node"><div class="node-head"><strong>PlannerAgent</strong><span class="pill yellow">需要确认</span></div><div class="node-body">输出：<span class="mono blue">plan</span>。失败：重新生成计划。</div><div class="toolbar"><button class="btn">编辑节点</button><button class="btn">条件分支</button></div></div>
-              <div class="arrow">↓</div>
-              <div class="workflow-node"><div class="node-head"><strong>CodebaseAgent</strong><span class="pill">required</span></div><div class="node-body">输出：<span class="mono blue">relatedFiles, codebaseSummary</span>。</div><div class="toolbar"><button class="btn">编辑节点</button><button class="btn">上移</button><button class="btn">下移</button></div></div>
-              <div class="arrow">↓</div>
-              <div class="workflow-node"><div class="node-head"><strong>DeveloperAgent</strong><span class="pill blue">patch only</span></div><div class="node-body">输出：<span class="mono blue">patchProposal</span>。失败：读取错误后重试。</div></div>
-              <div class="arrow">↓</div>
-              <div class="workflow-node"><div class="node-head"><strong>Human Approval</strong><span class="pill red">block point</span></div><div class="node-body">用户选择：Apply / Partial Apply / Reject / Regenerate。</div></div>
-              <div class="arrow">↓</div>
-              <div class="workflow-node"><div class="node-head"><strong>TesterAgent</strong><span class="pill yellow">command confirm</span></div><div class="node-body">测试失败：自动生成修复建议，最多重试 2 次，回到 DeveloperAgent。</div></div>
-            </div>
-            <div class="toolbar"><button class="btn">+ 添加 Agent 节点</button><button class="btn">+ 添加人工确认</button><button class="btn">+ 添加条件分支</button><button class="btn danger">删除选中节点</button></div>
-            <div class="field"><label>Workflow JSON Preview</label><div class="codebox">{
-  "id": "code_edit",
-  "default": true,
-  "nodes": ["planner", "codebase", "developer", "human_approval", "tester"],
-  "retry": { "limit": 2, "onFail": "developer" },
-  "confirm": ["plan", "patch", "command"]
-}</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="page" id="settings">
-        <div class="section">
-          <div class="section-head"><div class="section-title">Model Provider</div><div class="section-action"><button class="btn">测试连接</button><button class="btn primary">保存设置</button></div></div>
-          <div class="section-body">
-            <div class="field"><label>Provider</label><select><option>OpenAI Compatible</option><option>OpenAI</option><option>Azure OpenAI</option><option>Ollama</option><option>LM Studio</option></select></div>
-            <div class="field"><label>Base URL</label><input value="http://localhost:11434/v1" /></div>
-            <div class="two"><div><label>Default Model</label><input value="qwen2.5-coder:7b" /></div><div><label>Fallback Model</label><input value="gpt-4.1-mini" /></div></div>
-            <div class="two"><div><label>Max Tokens</label><input value="8192" /></div><div><label>Timeout</label><input value="120s" /></div></div>
-            <div class="field"><label>API Key</label><input value="••••••••••••••••" /></div>
-            <div class="switch-row"><span>使用 VS Code SecretStorage 保存密钥</span><span class="toggle on"></span></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">AutoGen Runtime</div><div class="section-action"><button class="btn green">启动</button><button class="btn">停止</button><button class="btn primary">重启</button></div></div>
-          <div class="section-body">
-            <div class="field"><label>Service URL</label><input value="http://127.0.0.1:8765" /></div>
-            <div class="two"><div><label>Host</label><input value="127.0.0.1" /></div><div><label>Port</label><input value="8765" /></div></div>
-            <div class="field"><label>Python Path</label><input value="D:/runtime/python/python.exe" /></div>
-            <div class="two"><div><label>AutoGen Package</label><input value="autogen-agentchat" /></div><div><label>Log Level</label><select><option>INFO</option><option>DEBUG</option><option>WARN</option><option>ERROR</option></select></div></div>
-            <div class="field"><label>Workspace Storage Path</label><input value="${workspaceStorage}/autogen-code" /></div>
-            <div class="switch-row"><span>API Key 保存到 VS Code SecretStorage</span><span class="toggle on"></span></div>
-            <div class="kv-row"><span>Status</span><span class="pill green">running</span></div>
-            <div class="toolbar"><button class="btn">健康检查</button><button class="btn">查看 Runtime 日志</button><button class="btn">打开配置目录</button><button class="btn primary">保存 Runtime</button></div>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-head"><div class="section-title">Context & Safety</div><div class="section-action"><button class="btn ghost">恢复默认</button><button class="btn primary">保存安全策略</button></div></div>
-          <div class="section-body">
-            <div class="two"><div><label>Max Files Read</label><input value="30" /></div><div><label>Max Context Tokens</label><input value="64000" /></div></div>
-            <div class="checkbox-row"><span><span class="box checked">✓</span> 写文件前必须展示 diff</span><span></span></div>
-            <div class="checkbox-row"><span><span class="box checked">✓</span> 执行命令前必须确认</span><span></span></div>
-            <div class="checkbox-row"><span><span class="box checked">✓</span> 应用 Patch 前创建 Git checkpoint</span><span></span></div>
-            <div class="checkbox-row"><span><span class="box checked">✓</span> 禁止访问 workspace 外文件</span><span></span></div>
-            <div class="checkbox-row"><span><span class="box checked">✓</span> 屏蔽 .env / id_rsa / credentials</span><span></span></div>
-            <div class="toolbar"><button class="btn">导入配置</button><button class="btn">导出配置</button><button class="btn danger">清空任务历史</button></div>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <div class="bottom-compose">
-      <div class="compose-input"><span>@当前文件 @Git diff 继续告诉 AutoGen... · 发送给：当前 Agent</span></div>
-      <button class="send-circle">↑</button>
-    </div>
-    <div class="bottom-status"><span>main · AutoGen Ready</span><span>Tokens 12.4k · $0.18</span></div>
-
-    <div class="modal-backdrop" id="revisePlanModal"><div class="modal"><div class="modal-head"><div class="modal-title">调整计划</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><label>告诉 PlannerAgent 你要怎么改计划</label><textarea>不要修改 SecurityConfig，先只生成 AuthController、AuthService 和 DTO。</textarea><div class="save-bar"><button class="btn" data-close>取消</button><button class="btn primary">提交给 PlannerAgent</button></div></div></div></div>
-    <div class="modal-backdrop" id="rejectPatchModal"><div class="modal"><div class="modal-head"><div class="modal-title">拒绝 Patch 并说明原因</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><label>拒绝原因</label><textarea>项目里已经有 TokenService，不要新增 JwtUtil，请复用现有服务。</textarea><div class="save-bar"><button class="btn" data-close>取消</button><button class="btn primary">让 DeveloperAgent 重写</button></div></div></div></div>
-    <div class="modal-backdrop" id="contextModal"><div class="modal"><div class="modal-head"><div class="modal-title">上下文管理</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><div class="drawer-list"><div class="mini-row"><span>@当前文件 · UserController.java</span><span class="pill green">已加入</span></div><div class="mini-row"><span>@Git diff · 3 files changed</span><span class="pill green">已加入</span></div><div class="mini-row"><span>@终端错误 · mvn test failed</span><button class="btn">加入</button></div><div class="mini-row"><span>手动选择文件</span><button class="btn primary">选择</button></div></div><div class="footer-note">这里对应 VS Code Webview 中的 contextRefs，发送任务时会传给 AutoGen Service。</div></div></div></div>
-    <div class="modal-backdrop" id="historyModal"><div class="modal"><div class="modal-head"><div class="modal-title">任务历史</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><div class="drawer-list"><div class="mini-row"><span>增加 JWT 登录接口</span><button class="btn">恢复</button></div><div class="mini-row"><span>修复订单分页 bug</span><button class="btn">继续</button></div><div class="mini-row"><span>生成 UserServiceTest</span><button class="btn">查看</button></div></div></div></div></div>
-    <div class="modal-backdrop" id="runtimeModal"><div class="modal"><div class="modal-head"><div class="modal-title">AutoGen Runtime</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><div class="kv-row"><span>状态</span><span class="pill green">running</span></div><div class="kv-row"><span>端口</span><span class="mono blue">8765</span></div><div class="kv-row"><span>Python</span><span class="mono">D:/runtime/python/python.exe</span></div><div class="toolbar"><button class="btn">查看日志</button><button class="btn">健康检查</button><button class="btn primary">重启服务</button></div></div></div></div>
-    <div class="modal-backdrop" id="taskControlModal"><div class="modal"><div class="modal-head"><div class="modal-title">任务控制</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><div class="toolbar"><button class="btn green">继续</button><button class="btn">暂停</button><button class="btn">重跑当前 Agent</button><button class="btn" data-modal="switchAgentModal">切换 Agent</button><button class="btn danger">终止任务</button></div><label style="margin-top:10px">下一步发送给</label><select><option>当前 Agent</option><option>PlannerAgent</option><option>DeveloperAgent</option><option>ReviewerAgent</option><option>TesterAgent</option></select></div></div></div>
-    <div class="modal-backdrop" id="quickMenuModal"><div class="modal"><div class="modal-head"><div class="modal-title">更多操作</div><button class="icon-btn" data-close>×</button></div><div class="modal-body"><div class="drawer-list"><div class="mini-row"><span>导出当前配置</span><button class="btn">导出</button></div><div class="mini-row"><span>查看 WebSocket 事件</span><button class="btn">打开</button></div><div class="mini-row"><span>恢复默认 UI 布局</span><button class="btn">恢复</button></div></div></div></div></div>
-  </div>
-
-  <script>
-    const tabs = document.querySelectorAll('.tab');
-    const pages = document.querySelectorAll('.page');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const id = tab.dataset.tab;
-        tabs.forEach(t => t.classList.remove('active'));
-        pages.forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById(id).classList.add('active');
-      });
-    });
-    document.querySelectorAll('[data-modal]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const modal = document.getElementById(btn.dataset.modal);
-        if (modal) modal.classList.add('active');
-      });
-    });
-    document.querySelectorAll('[data-close]').forEach(btn => {
-      btn.addEventListener('click', () => btn.closest('.modal-backdrop').classList.remove('active'));
-    });
-    document.querySelectorAll('.modal-backdrop').forEach(bg => {
-      bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('active'); });
-    });
-  </script>
+  <main>
+    <h1>AutoGen 控制台</h1>
+    <section class="panel">
+      <label for="taskInput">任务请求</label>
+      <textarea id="taskInput">请创建一个 Task 1 占位任务。</textarea>
+      <button id="sendTaskButton" type="button">发送任务</button>
+      <div id="status">等待发送</div>
+    </section>
+    <section class="panel">
+      <label for="log">消息日志</label>
+      <div id="log" aria-live="polite"></div>
+    </section>
+  </main>
 </body>
 </html>

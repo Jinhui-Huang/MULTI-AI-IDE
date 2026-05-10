@@ -6,20 +6,24 @@
   "publisher": "local-dev",
   "engines": { "vscode": "^1.92.0" },
   "categories": ["AI", "Other"],
-  "activationEvents": ["onView:autogenAgent.controlPanel", "onCommand:autogenAgent.openPanel", "onCommand:autogenAgent.startRuntime", "onCommand:autogenAgent.stopRuntime"],
-  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:autogenAgent.controlPanel",
+    "onCommand:autogenAgent.openPanel",
+    "onCommand:autogenAgent.startTask"
+  ],
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       { "command": "autogenAgent.openPanel", "title": "AutoGen Code Agent: Open Panel" },
-      { "command": "autogenAgent.startRuntime", "title": "AutoGen Code Agent: Start Runtime" },
-      { "command": "autogenAgent.stopRuntime", "title": "AutoGen Code Agent: Stop Runtime" }
+      { "command": "autogenAgent.startTask", "title": "AutoGen Code Agent: Start Task" }
     ],
-    "viewsContainers": { "activitybar": [{ "id": "autogenAgent", "title": "Agent", "icon": "media/icon.svg" }] },
+    "viewsContainers": { "activitybar": [{ "id": "autogenAgent", "title": "AutoGen", "icon": "media/icon.svg" }] },
     "views": { "autogenAgent": [{ "id": "autogenAgent.controlPanel", "name": "AutoGen Control" }] },
     "configuration": {
       "title": "AutoGen Code Agent",
       "properties": {
         "autogenAgent.runtimeProvider": { "type": "string", "default": "autogen", "enum": ["autogen", "mock"] },
+        "autogenAgent.serviceUrl": { "type": "string", "default": "http://127.0.0.1:8765" },
         "autogenAgent.pythonPath": { "type": "string", "default": "python" },
         "autogenAgent.serviceHost": { "type": "string", "default": "127.0.0.1" },
         "autogenAgent.servicePort": { "type": "number", "default": 8765 },
@@ -33,6 +37,12 @@
       }
     }
   },
-  "scripts": { "compile": "tsc -p ./", "watch": "tsc -watch -p ./", "service:dev": "python agent-service/main.py", "package": "vsce package" },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "echo \"lint placeholder\"",
+    "service:dev": "python agent-service/main.py",
+    "package": "vsce package"
+  },
   "devDependencies": { "@types/node": "^20.14.0", "@types/vscode": "^1.92.0", "typescript": "^5.5.4", "@vscode/vsce": "^3.0.0" }
 }

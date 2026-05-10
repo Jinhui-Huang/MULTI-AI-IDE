@@ -1,4 +1,4 @@
 {
-  "compilerOptions": { "module": "commonjs", "target": "ES2022", "lib": ["ES2022", "DOM"], "outDir": "dist", "rootDir": "src", "strict": true, "esModuleInterop": true, "skipLibCheck": true, "sourceMap": true },
+  "compilerOptions": { "module": "commonjs", "target": "ES2020", "lib": ["ES2020", "DOM"], "outDir": "out", "rootDir": "src", "strict": true, "esModuleInterop": true, "skipLibCheck": true, "sourceMap": true },
   "exclude": ["node_modules", "agent-service", "docs"]
 }
