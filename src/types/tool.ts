@@ -1,22 +1,36 @@
 export type ToolPermission = 'deny' | 'allow' | 'confirm' | 'readonly' | 'whitelist';
-export interface ToolDefinition {
+export type ToolRisk = 'low' | 'medium' | 'high';
+
+export interface ToolRegistryItem {
   name: string;
   description: string;
-  category: 'file' | 'search' | 'patch' | 'terminal' | 'git' | 'runtime' | 'custom';
-  schema: Record<string, unknown>;
-  dangerous?: boolean;
   enabled: boolean;
+  risk: ToolRisk;
+  schema: string;
+  returnPreview: string;
 }
-export interface ToolPermissionMatrix { [agentId: string]: { [toolName: string]: ToolPermission }; }
+
 export interface GlobalSafetyConfig {
   denyOutsideWorkspace: boolean;
-  denyDirectWrite: boolean;
-  forcePatchApproval: boolean;
-  forceCommandApproval: boolean;
-  globallyDisableDangerousTools: boolean;
-  logToolResults: boolean;
+  forcePatchOnly: boolean;
+  confirmApplyPatch: boolean;
+  confirmRunCommand: boolean;
+  denyDangerousTools: boolean;
+  enableToolAuditLog: boolean;
+}
+
+export interface ToolsConfig {
+  permissions: Record<string, Record<string, ToolPermission>>;
+  registry: ToolRegistryItem[];
   commandAllowlist: string[];
   commandBlocklist: string[];
   sensitiveFileBlocklist: string[];
+  globalSafety: GlobalSafetyConfig;
 }
-export interface ToolResult<T = unknown> { ok: boolean; data?: T; error?: string; summary?: string; }
+
+export interface ToolResult<T = unknown> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  summary?: string;
+}

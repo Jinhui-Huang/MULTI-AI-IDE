@@ -24,15 +24,15 @@
       </label>
       <label class="field">
         <span data-i18n="settings.baseUrl">Base URL</span>
-        <input data-field="settings.baseUrl" value="http://localhost:11434/v1">
+        <input data-field="settings.baseUrl" value="https://generativelanguage.googleapis.com/v1beta/openai/">
       </label>
       <label class="field">
         <span data-i18n="settings.model">Model</span>
-        <input data-field="settings.model" value="qwen2.5-coder:7b">
+        <input data-field="settings.model" value="gemini-3-flash-preview">
       </label>
       <label class="field">
         <span data-i18n="settings.fallbackModel">Fallback Model</span>
-        <input data-field="settings.fallbackModel" value="gpt-4.1-mini">
+        <input data-field="settings.fallbackModel" value="gemini-3-flash-preview">
       </label>
     </div>
   </article>
@@ -47,7 +47,8 @@
     <div class="card-body form-grid">
       <label class="field">
         <span data-i18n="settings.apiKey">API Key</span>
-        <input data-field="settings.apiKey" type="password" value="placeholder-api-key">
+        <input data-field="settings.apiKey" type="password">
+        <div id="api-key-status" class="form-hint"></div>
       </label>
       <label class="check-row">
         <input type="checkbox" data-field="settings.useSecretStorage" checked>

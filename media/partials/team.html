@@ -12,7 +12,18 @@
         <button class="btn" type="button" data-action="team.setDefault" data-i18n="team.setDefault">Set Default</button>
       </div>
     </div>
+    <div class="card-body entity-grid" id="team-list" aria-live="polite"></div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="team.current.eyebrow">Current team</p>
+        <h3 data-i18n="team.editor.title">Team Editor</h3>
+      </div>
+    </div>
     <div class="card-body form-grid">
+      <input type="hidden" data-field="team.id" value="java_spring_team">
       <label class="field">
         <span data-i18n="team.name">Team Name</span>
         <input data-field="team.name" value="Java Spring Boot Team">

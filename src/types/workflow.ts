@@ -1,26 +1,30 @@
-export type WorkflowNodeType = 'agent' | 'team' | 'tool' | 'human_approval' | 'condition' | 'summary';
+export type WorkflowNodeType = 'agent' | 'human_approval' | 'condition' | 'tool' | 'summary';
+
 export interface WorkflowNode {
   id: string;
+  name: string;
   type: WorkflowNodeType;
-  label: string;
   agentId?: string;
-  toolName?: string;
-  inputKeys?: string[];
-  outputKey?: string;
-  requireApproval?: boolean;
-  timeoutSeconds?: number;
-  retryLimit?: number;
-  onFailure?: string;
+  inputFields: string[];
+  outputFields: string[];
+  onFailure: string;
+  maxRetries: number;
+  timeoutSeconds: number;
+  enabled: boolean;
 }
-export interface WorkflowEdge { from: string; to: string; condition?: string; }
+
 export interface WorkflowConfig {
   id: string;
   name: string;
-  description?: string;
-  version: string;
-  defaultWorkflow?: boolean;
+  description: string;
+  type: string;
+  failureStrategy: string;
+  retryLimit: number;
+  nodeTimeoutSeconds: number;
+  confirmPolicy: string;
+  jsonVersion: number;
+  default: boolean;
+  enabled: boolean;
   nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  failureStrategy: 'stop' | 'retry' | 'fallback' | 'ask_user';
-  confirmPolicy: 'none' | 'plan' | 'patch' | 'command' | 'all';
+  jsonPreview?: string;
 }

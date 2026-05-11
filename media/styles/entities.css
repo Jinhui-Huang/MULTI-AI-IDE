@@ -15,6 +15,20 @@
   background: rgba(255, 255, 255, 0.018);
 }
 
+.entity-button {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entity-button:hover,
+.entity-card.active {
+  border-color: rgba(224, 118, 79, 0.55);
+  background: rgba(224, 118, 79, 0.09);
+}
+
 .entity-card strong,
 .template-card strong {
   flex: 1 0 100%;

@@ -10,44 +10,7 @@
         <button class="btn" type="button" data-action="agent.import" data-i18n="agents.import">Import Agent</button>
       </div>
     </div>
-    <div class="card-body entity-grid">
-      <div class="entity-card">
-        <strong>PlannerAgent</strong>
-        <p data-i18n="agents.planner.description">Breaks user request into an executable plan.</p>
-        <span class="pill">gpt-4.1</span>
-        <span class="pill green" data-i18n="common.enabled">enabled</span>
-      </div>
-      <div class="entity-card">
-        <strong>CodebaseAgent</strong>
-        <p data-i18n="agents.codebase.description">Reads project context and summarizes related files.</p>
-        <span class="pill">gpt-4.1-mini</span>
-        <span class="pill green" data-i18n="common.enabled">enabled</span>
-      </div>
-      <div class="entity-card">
-        <strong>DeveloperAgent</strong>
-        <p data-i18n="agents.developer.description">Drafts patch proposals from approved plans.</p>
-        <span class="pill">qwen2.5-coder:7b</span>
-        <span class="pill green" data-i18n="common.enabled">enabled</span>
-      </div>
-      <div class="entity-card">
-        <strong>ReviewerAgent</strong>
-        <p data-i18n="agents.reviewer.description">Reviews generated changes before approval.</p>
-        <span class="pill">gpt-4.1</span>
-        <span class="pill green" data-i18n="common.enabled">enabled</span>
-      </div>
-      <div class="entity-card muted-card">
-        <strong>TesterAgent</strong>
-        <p data-i18n="agents.tester.description">Plans validation commands and test follow-up.</p>
-        <span class="pill">gpt-4.1-mini</span>
-        <span class="pill" data-i18n="common.disabled">disabled</span>
-      </div>
-      <div class="entity-card">
-        <strong>SummaryAgent</strong>
-        <p data-i18n="agents.summary.description">Summarizes final outcome and remaining risks.</p>
-        <span class="pill">local-openai-compatible</span>
-        <span class="pill green" data-i18n="common.enabled">enabled</span>
-      </div>
-    </div>
+    <div class="card-body entity-grid" id="agent-list" aria-live="polite"></div>
   </article>
 
   <article class="section-card">
@@ -63,6 +26,7 @@
       </div>
     </div>
     <div class="card-body form-grid">
+      <input type="hidden" data-field="agent.id" value="developer_agent">
       <label class="field">
         <span data-i18n="agents.name">Name</span>
         <input data-field="agent.name" value="DeveloperAgent">
@@ -86,9 +50,10 @@
       <label class="field">
         <span data-i18n="agents.model">Model</span>
         <select data-field="agent.model">
+          <option value="gemini-3-flash-preview" selected>gemini-3-flash-preview</option>
           <option value="gpt-4.1">gpt-4.1</option>
           <option value="gpt-4.1-mini">gpt-4.1-mini</option>
-          <option value="qwen2.5-coder:7b" selected>qwen2.5-coder:7b</option>
+          <option value="qwen2.5-coder:7b">qwen2.5-coder:7b</option>
           <option value="local-openai-compatible">local-openai-compatible</option>
         </select>
       </label>

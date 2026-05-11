@@ -1,14 +1,23 @@
 export type TeamMode = 'sequential' | 'round_robin' | 'selector' | 'manual';
+
+export interface TeamAgentConfig {
+  agentId: string;
+  name: string;
+  role: string;
+  order: number;
+  enabled: boolean;
+}
+
 export interface TeamConfig {
   id: string;
   name: string;
-  description?: string;
   mode: TeamMode;
-  defaultTeam?: boolean;
   maxTurns: number;
   retryLimit: number;
   termination: string;
-  executionPolicy?: 'serial' | 'parallel';
-  modelOverridePolicy?: 'agent_default' | 'team_override' | 'runtime_default';
-  agents: string[];
+  executionPolicy: string;
+  modelOverride: string;
+  default: boolean;
+  enabled: boolean;
+  agents: TeamAgentConfig[];
 }

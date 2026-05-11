@@ -10,7 +10,18 @@
         <button class="btn" type="button" data-action="workflow.saveAsTemplate" data-i18n="workflow.saveTemplate">Save Template</button>
       </div>
     </div>
+    <div class="card-body entity-grid" id="workflow-list" aria-live="polite"></div>
+  </article>
+
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="workflow.current.eyebrow">Current workflow</p>
+        <h3 data-i18n="workflow.editor.title">Workflow Editor</h3>
+      </div>
+    </div>
     <div class="card-body form-grid">
+      <input type="hidden" data-field="workflow.id" value="code_edit">
       <label class="field">
         <span data-i18n="workflow.name">Name</span>
         <input data-field="workflow.name" value="Code Edit Workflow">
@@ -75,16 +86,7 @@
         <button class="btn" type="button" data-action="workflow.node.addCondition" data-i18n="workflow.addCondition">Add Condition</button>
       </div>
     </div>
-    <div class="card-body ordered-list">
-      <div class="ordered-row"><span>1</span><strong>PlannerAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.plannerFlow">agent | input: context | output: plan</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
-      <div class="ordered-row"><span>2</span><strong data-i18n="workflow.node.planApproval">Human Approval: Plan Approval</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.planApprovalFlow">human_approval | input: plan | output: approval</p><button class="btn" type="button" data-action="workflow.node.edit" data-i18n="workflow.node.edit">Edit</button></div>
-      <div class="ordered-row"><span>3</span><strong>CodebaseAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.codebaseFlow">agent | input: context / plan | output: codebaseSummary</p><button class="btn" type="button" data-action="workflow.node.addAfter" data-i18n="workflow.node.addAfter">Add After</button></div>
-      <div class="ordered-row"><span>4</span><strong>DeveloperAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.developerFlow">agent | input: plan / codebaseSummary | output: patch</p><button class="btn" type="button" data-action="workflow.node.moveUp" data-i18n="workflow.node.moveUp">Move Up</button></div>
-      <div class="ordered-row"><span>5</span><strong>ReviewerAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.reviewerFlow">agent | input: patch | output: reviewResult</p><button class="btn" type="button" data-action="workflow.node.moveDown" data-i18n="workflow.node.moveDown">Move Down</button></div>
-      <div class="ordered-row"><span>6</span><strong data-i18n="workflow.node.patchApproval">Human Approval: Patch Approval</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.patchApprovalFlow">human_approval | input: patch / review | output: approval</p><button class="btn danger" type="button" data-action="workflow.node.delete" data-i18n="workflow.node.delete">Delete</button></div>
-      <div class="ordered-row"><span>7</span><strong>TesterAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.testerFlow">agent | input: patch / reviewResult | output: testResult</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
-      <div class="ordered-row"><span>8</span><strong>SummaryAgent</strong><em data-i18n="workflow.node.enabled">enabled</em><p data-i18n="workflow.node.summaryFlow">agent | input: testResult / reviewResult | output: summary</p><button class="btn" type="button" data-action="workflow.node.select" data-i18n="workflow.node.select">Select</button></div>
-    </div>
+    <div class="card-body ordered-list" id="workflow-node-list" aria-live="polite"></div>
   </article>
 
   <article class="section-card">

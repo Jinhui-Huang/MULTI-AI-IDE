@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { ConfigStore } from '../storage/ConfigStore';
+import { SecretStore } from '../storage/SecretStore';
 import { MessageDispatcher } from './MessageDispatcher';
 import { WebviewHtmlBuilder } from './WebviewHtmlBuilder';
 
@@ -11,7 +13,7 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
     private readonly context: vscode.ExtensionContext,
     private readonly output: vscode.OutputChannel
   ) {
-    this.dispatcher = new MessageDispatcher(output);
+    this.dispatcher = new MessageDispatcher(output, new ConfigStore(context), new SecretStore(context));
     this.htmlBuilder = new WebviewHtmlBuilder(context.extensionUri, output);
   }
 
