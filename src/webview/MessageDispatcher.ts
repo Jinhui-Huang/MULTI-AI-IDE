@@ -6,6 +6,10 @@ import { AgentConfig, AgentContextFlags, AgentToolFlags } from '../types/agent';
 import { TeamConfig } from '../types/team';
 import { GlobalSafetyConfig, ToolPermission, ToolsConfig } from '../types/tool';
 import { WorkflowConfig, WorkflowNode } from '../types/workflow';
+import { PatchTools } from '../tools/PatchTools';
+import { TerminalTools } from '../tools/TerminalTools';
+import { ToolError } from '../tools/ToolTypes';
+import { GitTools } from '../tools/GitTools';
 
 export interface TaskCreatePayload {
   userRequest?: string;
@@ -31,6 +35,9 @@ export interface WebviewResponse {
 
 interface ActionPayload {
   fields?: Record<string, unknown>;
+  patchId?: string;
+  commandId?: string;
+  reason?: string;
 }
 
 export class MessageDispatcher {
@@ -47,14 +54,8 @@ export class MessageDispatcher {
     'plan.approve',
     'plan.revise',
     'plan.saveAsTemplate',
-    'patch.openDiff',
-    'patch.apply',
-    'patch.reject',
     'patch.applyPartial',
     'patch.explain',
-    'command.approveOnce',
-    'command.addAllowlist',
-    'command.reject',
     'agent.import',
     'agent.test',
     'team.addAgent',
@@ -93,6 +94,9 @@ export class MessageDispatcher {
     private readonly configStore: ConfigStore,
     private readonly secretStore: SecretStore,
     private readonly runtimeManager: RuntimeManager,
+    private readonly patchTools: PatchTools,
+    private readonly terminalTools: TerminalTools,
+    private readonly gitTools: GitTools,
     private readonly postToWebview?: (message: WebviewResponse) => void | PromiseLike<unknown>
   ) {}
 
@@ -235,6 +239,46 @@ export class MessageDispatcher {
 
     if (message.type === 'runtime.health') {
       return this.handleRuntimeAction(message, () => this.runtimeManager.health(), 'Runtime health checked', 'RUNTIME_HEALTH_FAILED');
+    }
+
+    if (message.type === 'patch.debug.proposePlaceholder') {
+      return this.handlePatchDebugProposePlaceholder(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'patch.openDiff') {
+      return this.handlePatchOpenDiff(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'patch.apply') {
+      return this.handlePatchApply(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'patch.reject') {
+      return this.handlePatchReject(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'command.debug.requestMvnTest') {
+      return this.handleCommandDebugRequestMvnTest(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'command.approveOnce') {
+      return this.handleCommandApproveOnce(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'command.addAllowlist') {
+      return this.handleCommandAddAllowlist(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'command.reject') {
+      return this.handleCommandReject(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'git.debug.status') {
+      return this.handleGitDebugStatus(message);
+    }
+
+    if (message.type === 'git.debug.diff') {
+      return this.handleGitDebugDiff(message as WebviewMessage<ActionPayload>);
     }
 
     if (this.placeholderActions.has(message.type)) {
@@ -710,6 +754,204 @@ export class MessageDispatcher {
         }
       };
     }
+  }
+
+  private async handlePatchDebugProposePlaceholder(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handlePatchAction(message, async () => this.patchTools.proposePatch({
+      summary: 'AutoGen placeholder patch',
+      files: [{
+        path: '.autogen-placeholder/placeholder.txt',
+        changeType: 'add',
+        oldContent: '',
+        newContent: 'AutoGen placeholder patch\n'
+      }]
+    }));
+  }
+
+  private async handlePatchOpenDiff(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handlePatchAction(message, async () => this.patchTools.openPatchDiff(this.getPatchId(message)));
+  }
+
+  private async handlePatchApply(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handlePatchAction(message, async () => this.patchTools.applyPatch(this.getPatchId(message)));
+  }
+
+  private async handlePatchReject(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const reason = message.payload?.reason || this.getStringField(message.payload?.fields ?? {}, 'task.followupMessage');
+    return this.handlePatchAction(message, async () => this.patchTools.rejectPatch(this.getPatchId(message), reason));
+  }
+
+  private async handlePatchAction(
+    message: WebviewMessage<ActionPayload>,
+    action: () => Promise<unknown>
+  ): Promise<WebviewResponse> {
+    try {
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: await action()
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: this.toPatchError(error)
+      };
+    }
+  }
+
+  private getPatchId(message: WebviewMessage<ActionPayload>): string | undefined {
+    return message.payload?.patchId || this.getStringField(message.payload?.fields ?? {}, 'patch.id') || undefined;
+  }
+
+  private toPatchError(error: unknown): { code: string; message: string } {
+    if (error instanceof ToolError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+
+    if (error instanceof Error && error.message.startsWith('DIFF_OPEN_FAILED:')) {
+      return {
+        code: 'DIFF_OPEN_FAILED',
+        message: error.message.replace(/^DIFF_OPEN_FAILED:\s*/, '')
+      };
+    }
+
+    return {
+      code: 'PATCH_APPLY_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private async handleCommandDebugRequestMvnTest(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handleCommandAction(message, async () => ({
+      message: 'Command approval required',
+      command: await this.terminalTools.requestRunCommand('mvn test', 'Debug test command'),
+      approvalRequired: true
+    }));
+  }
+
+  private async handleCommandApproveOnce(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handleCommandAction(message, async () => ({
+      message: 'Command executed',
+      result: await this.terminalTools.approveAndRun(this.getCommandId(message))
+    }));
+  }
+
+  private async handleCommandAddAllowlist(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    return this.handleCommandAction(message, async () => await this.terminalTools.addCommandToAllowlist(this.getCommandId(message)));
+  }
+
+  private async handleCommandReject(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const reason = message.payload?.reason || this.getStringField(message.payload?.fields ?? {}, 'task.followupMessage');
+    return this.handleCommandAction(message, async () => ({
+      message: 'Command rejected',
+      command: await this.terminalTools.rejectCommand(this.getCommandId(message), reason)
+    }));
+  }
+
+  private async handleCommandAction(
+    message: WebviewMessage<ActionPayload>,
+    action: () => Promise<unknown>
+  ): Promise<WebviewResponse> {
+    try {
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: await action()
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: this.toCommandError(error)
+      };
+    }
+  }
+
+  private getCommandId(message: WebviewMessage<ActionPayload>): string | undefined {
+    return message.payload?.commandId || this.getStringField(message.payload?.fields ?? {}, 'command.id') || undefined;
+  }
+
+  private toCommandError(error: unknown): { code: string; message: string } {
+    if (error instanceof ToolError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+
+    const code = error instanceof Error ? error.message : String(error);
+    if (code === 'COMMAND_NOT_FOUND') {
+      return {
+        code,
+        message: 'Command not found'
+      };
+    }
+
+    return {
+      code: 'COMMAND_EXEC_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private async handleGitDebugStatus(message: WebviewMessage): Promise<WebviewResponse> {
+    return this.handleGitAction(message, async () => ({
+      message: 'Git status loaded',
+      result: await this.gitTools.gitStatus()
+    }));
+  }
+
+  private async handleGitDebugDiff(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const fields = message.payload?.fields ?? {};
+    return this.handleGitAction(message, async () => ({
+      message: 'Git diff loaded',
+      result: await this.gitTools.gitDiff({
+        path: this.getStringField(fields, 'git.debug.path') || undefined,
+        cached: fields['git.debug.cached'] === true,
+        maxBytes: 200000
+      })
+    }));
+  }
+
+  private async handleGitAction(
+    message: WebviewMessage,
+    action: () => Promise<unknown>
+  ): Promise<WebviewResponse> {
+    try {
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: await action()
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: this.toGitError(error)
+      };
+    }
+  }
+
+  private toGitError(error: unknown): { code: string; message: string } {
+    if (error instanceof ToolError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'GIT_COMMAND_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
   }
 
   private pickSettingsFields(fields: Record<string, unknown>): Record<string, unknown> {

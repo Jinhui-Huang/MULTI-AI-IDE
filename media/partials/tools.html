@@ -251,6 +251,29 @@ application-prod.yml
     </div>
   </article>
 
+  <article class="section-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow" data-i18n="tools.gitDebug.eyebrow">Git Debug</p>
+        <h3 data-i18n="tools.gitDebug.title">Read-only Git Tools</h3>
+      </div>
+      <div class="action-row">
+        <button class="btn" type="button" data-action="git.debug.status" data-i18n="tools.gitDebug.status">Debug git_status</button>
+        <button class="btn" type="button" data-action="git.debug.diff" data-i18n="tools.gitDebug.diff">Debug git_diff</button>
+      </div>
+    </div>
+    <div class="card-body form-grid">
+      <label class="field">
+        <span data-i18n="tools.gitDebug.path">Path</span>
+        <input data-field="git.debug.path" data-i18n-placeholder="tools.gitDebug.pathPlaceholder" placeholder="Optional: src/App.ts">
+      </label>
+      <label class="check-row">
+        <input type="checkbox" data-field="git.debug.cached">
+        <span data-i18n="tools.gitDebug.cached">Read staged diff</span>
+      </label>
+    </div>
+  </article>
+
   <article class="section-card log-card">
     <div class="card-head">
       <div>

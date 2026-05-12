@@ -8,6 +8,8 @@
   let workflows = [];
   let selectedWorkflowId = '';
   let toolsConfig;
+  let currentPatchId = '';
+  let currentCommandId = '';
 
   function getElement(id) {
     return document.getElementById(id);
@@ -111,11 +113,21 @@
   }
 
   function createActionMessage(action) {
+    const payload = {
+      fields: collectFields()
+    };
+
+    if ((action === 'patch.openDiff' || action === 'patch.apply' || action === 'patch.reject') && currentPatchId) {
+      payload.patchId = currentPatchId;
+    }
+
+    if ((action === 'command.approveOnce' || action === 'command.addAllowlist' || action === 'command.reject') && currentCommandId) {
+      payload.commandId = currentCommandId;
+    }
+
     return {
       type: action,
-      payload: {
-        fields: collectFields()
-      },
+      payload,
       requestId: 'action_' + Date.now() + '_' + sequence++,
       timestamp: Date.now()
     };
@@ -700,6 +712,91 @@
     setStatus(message, 'error');
   }
 
+  function handlePatchResult(responseType, payload) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+
+    const patch = payload.patch && typeof payload.patch === 'object' ? payload.patch : undefined;
+    const patchId = payload.patchId || (patch && patch.id);
+    if (patchId) {
+      currentPatchId = patchId;
+      appendLog('patchId: ' + patchId, 'ok');
+    }
+
+    if (responseType === 'patch.apply.result') {
+      appendLog(payload.message || 'Patch applied', 'ok');
+    }
+
+    if (responseType === 'patch.reject.result') {
+      appendLog(payload.message || 'Patch rejected', 'ok');
+    }
+
+    if (responseType === 'patch.openDiff.result') {
+      appendLog(payload.message || 'Diff opened', 'ok');
+    }
+  }
+
+  function truncateForDisplay(value, maxLength) {
+    const text = value || '';
+    return text.length > maxLength ? text.slice(0, maxLength) + '\n... truncated ...' : text;
+  }
+
+  function handleCommandResult(responseType, payload) {
+    if (!payload || typeof payload !== 'object') {
+      return;
+    }
+
+    const command = payload.command && typeof payload.command === 'object' ? payload.command : undefined;
+    const result = payload.result && typeof payload.result === 'object' ? payload.result : undefined;
+    const commandId = payload.commandId || (command && command.id) || (result && result.id);
+    if (commandId) {
+      currentCommandId = commandId;
+      appendLog('commandId: ' + commandId, 'ok');
+    }
+
+    if (result) {
+      appendLog('exitCode: ' + result.exitCode + ' | durationMs: ' + result.durationMs, result.status === 'completed' ? 'ok' : 'error');
+      if (result.stdout) {
+        appendLog('stdout:\n' + truncateForDisplay(result.stdout, 3000), '');
+      }
+      if (result.stderr) {
+        appendLog('stderr:\n' + truncateForDisplay(result.stderr, 3000), 'error');
+      }
+    }
+
+    if (responseType === 'command.reject.result') {
+      appendLog(payload.message || 'Command rejected', 'ok');
+    }
+
+    if (responseType === 'command.addAllowlist.result') {
+      appendLog(payload.message || 'Command added to allowlist', 'ok');
+    }
+  }
+
+  function handleGitResult(responseType, payload) {
+    const result = payload && payload.result ? payload.result : undefined;
+    if (!result) {
+      return;
+    }
+
+    if (responseType === 'git.debug.status.result') {
+      const files = Array.isArray(result.files) ? result.files : [];
+      appendLog('git branch: ' + (result.branch || 'none') + ' | files: ' + files.length, 'ok');
+      files.slice(0, 20).forEach(function (file) {
+        appendLog((file.status || 'unknown') + ': ' + (file.path || ''), '');
+      });
+      return;
+    }
+
+    if (responseType === 'git.debug.diff.result') {
+      appendLog('git diff bytes: ' + (result.bytes || 0) + ' | truncated: ' + (result.truncated === true), 'ok');
+      if (result.diff) {
+        appendLog('diff:\n' + truncateForDisplay(result.diff, 3000), '');
+      }
+    }
+  }
+
   function bindTabs() {
     document.querySelectorAll('[data-tab]').forEach(function (tab) {
       tab.addEventListener('click', function () {
@@ -887,6 +984,25 @@
         if (responseType === 'task.event') {
           handleTaskEvent((message.payload || {}).event);
           return;
+        }
+
+        if (responseType === 'patch.debug.proposePlaceholder.result'
+          || responseType === 'patch.openDiff.result'
+          || responseType === 'patch.apply.result'
+          || responseType === 'patch.reject.result') {
+          handlePatchResult(responseType, message.payload || {});
+        }
+
+        if (responseType === 'command.debug.requestMvnTest.result'
+          || responseType === 'command.approveOnce.result'
+          || responseType === 'command.addAllowlist.result'
+          || responseType === 'command.reject.result') {
+          handleCommandResult(responseType, message.payload || {});
+        }
+
+        if (responseType === 'git.debug.status.result'
+          || responseType === 'git.debug.diff.result') {
+          handleGitResult(responseType, message.payload || {});
         }
 
         const text = message.payload && message.payload.message

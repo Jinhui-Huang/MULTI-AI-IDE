@@ -2,6 +2,13 @@ import * as vscode from 'vscode';
 import { ConfigStore } from '../storage/ConfigStore';
 import { RuntimeManager } from '../runtime/RuntimeManager';
 import { SecretStore } from '../storage/SecretStore';
+import { CommandStore } from '../tools/CommandStore';
+import { DiffTools } from '../tools/DiffTools';
+import { GitTools } from '../tools/GitTools';
+import { PatchStore } from '../tools/PatchStore';
+import { PatchTools } from '../tools/PatchTools';
+import { TerminalTools } from '../tools/TerminalTools';
+import { WorkspaceGuard } from '../tools/WorkspaceGuard';
 import { MessageDispatcher } from './MessageDispatcher';
 import { WebviewHtmlBuilder } from './WebviewHtmlBuilder';
 
@@ -16,11 +23,25 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
     runtimeManager?: RuntimeManager
   ) {
     const configStore = new ConfigStore(context);
+    const workspaceGuard = new WorkspaceGuard();
+    const patchStore = new PatchStore();
+    const commandStore = new CommandStore();
+    const patchTools = new PatchTools(
+      configStore,
+      workspaceGuard,
+      new DiffTools(context),
+      patchStore
+    );
+    const terminalTools = new TerminalTools(configStore, workspaceGuard, commandStore);
+    const gitTools = new GitTools(workspaceGuard);
     this.dispatcher = new MessageDispatcher(
       output,
       configStore,
       new SecretStore(context),
       runtimeManager ?? new RuntimeManager(context, output, configStore),
+      patchTools,
+      terminalTools,
+      gitTools,
       (message) => this.view?.webview.postMessage(message)
     );
     this.htmlBuilder = new WebviewHtmlBuilder(context.extensionUri, output);
