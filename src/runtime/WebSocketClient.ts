@@ -1,16 +1,44 @@
-import { EventEmitter } from 'events';
-import { StreamEvent } from '../types/messages';
+import WebSocket from 'ws';
 
-export class WebSocketClient extends EventEmitter {
+export class WebSocketClient {
   private ws?: WebSocket;
-  private reconnect = true;
-  constructor(private readonly urlFactory: () => string) { super(); }
-  connect(): void {
-    const url = this.urlFactory();
+
+  connect(
+    url: string,
+    onEvent: (event: unknown) => void,
+    onError?: (error: Error) => void
+  ): void {
+    this.close();
     this.ws = new WebSocket(url);
-    this.ws.onmessage = (event) => this.emit('event', JSON.parse(String(event.data)) as StreamEvent);
-    this.ws.onerror = (event) => this.emit('error', event);
-    this.ws.onclose = () => { if (this.reconnect) setTimeout(() => this.connect(), 1500); };
+    this.ws.on('open', () => console.log('WebSocket connected'));
+    this.ws.on('message', (data) => {
+      try {
+        onEvent(JSON.parse(data.toString()));
+      } catch (error) {
+        const parseError = error instanceof Error ? error : new Error(String(error));
+        if (onError) {
+          onError(parseError);
+          return;
+        }
+        console.warn(`WebSocket message parse failed: ${parseError.message}`);
+      }
+    });
+    this.ws.on('error', (error) => {
+      if (onError) {
+        onError(error instanceof Error ? error : new Error(String(error)));
+      }
+    });
+    this.ws.on('close', () => console.log('WebSocket closed'));
   }
-  close(): void { this.reconnect = false; this.ws?.close(); }
+
+  close(): void {
+    if (this.ws && this.ws.readyState !== WebSocket.CLOSED && this.ws.readyState !== WebSocket.CLOSING) {
+      this.ws.close();
+    }
+    this.ws = undefined;
+  }
+
+  isConnected(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
+  }
 }

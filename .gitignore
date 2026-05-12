@@ -47,3 +47,5 @@ target/
 playwright-report/
 test-results/
 test_workspace/
+.tmp*/
+.npm-cache/

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ConfigStore } from '../storage/ConfigStore';
+import { RuntimeManager, RuntimeManagerError, RuntimeStatus } from '../runtime/RuntimeManager';
 import { SecretStore } from '../storage/SecretStore';
 import { AgentConfig, AgentContextFlags, AgentToolFlags } from '../types/agent';
 import { TeamConfig } from '../types/team';
@@ -34,7 +35,6 @@ interface ActionPayload {
 
 export class MessageDispatcher {
   private readonly placeholderActions = new Set([
-    'task.create',
     'task.pause',
     'task.resume',
     'task.cancel',
@@ -83,10 +83,6 @@ export class MessageDispatcher {
     'settings.restoreDefault',
     'settings.safety.save',
     'settings.runtime.save',
-    'runtime.start',
-    'runtime.stop',
-    'runtime.restart',
-    'runtime.health',
     'runtime.openLogs',
     'runtime.openConfigDir',
     'taskHistory.clear'
@@ -95,7 +91,9 @@ export class MessageDispatcher {
   constructor(
     private readonly output: vscode.OutputChannel,
     private readonly configStore: ConfigStore,
-    private readonly secretStore: SecretStore
+    private readonly secretStore: SecretStore,
+    private readonly runtimeManager: RuntimeManager,
+    private readonly postToWebview?: (message: WebviewResponse) => void | PromiseLike<unknown>
   ) {}
 
   async dispatch(message: unknown): Promise<WebviewResponse> {
@@ -113,6 +111,10 @@ export class MessageDispatcher {
     this.output.appendLine(`[webview] ${message.type}`);
     if (message.type === 'settings.load') {
       return this.handleSettingsLoad(message);
+    }
+
+    if (message.type === 'task.create') {
+      return this.handleTaskCreate(message as WebviewMessage<ActionPayload>);
     }
 
     if (message.type === 'settings.save') {
@@ -219,6 +221,22 @@ export class MessageDispatcher {
       return this.handleToolGlobalSafetySave(message as WebviewMessage<ActionPayload>);
     }
 
+    if (message.type === 'runtime.start') {
+      return this.handleRuntimeAction(message, () => this.runtimeManager.start(), 'Runtime started', 'RUNTIME_START_FAILED');
+    }
+
+    if (message.type === 'runtime.stop') {
+      return this.handleRuntimeAction(message, () => this.runtimeManager.stop(), 'Runtime stopped', 'RUNTIME_STOP_FAILED');
+    }
+
+    if (message.type === 'runtime.restart') {
+      return this.handleRuntimeAction(message, () => this.runtimeManager.restart(), 'Runtime restarted', 'RUNTIME_RESTART_FAILED');
+    }
+
+    if (message.type === 'runtime.health') {
+      return this.handleRuntimeAction(message, () => this.runtimeManager.health(), 'Runtime health checked', 'RUNTIME_HEALTH_FAILED');
+    }
+
     if (this.placeholderActions.has(message.type)) {
       return this.createPlaceholderResponse(message);
     }
@@ -238,6 +256,71 @@ export class MessageDispatcher {
     return this.createPlaceholderResponse(message);
   }
 
+  private async handleTaskCreate(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const fields = message.payload?.fields ?? {};
+    const userRequest = this.getStringField(fields, 'task.userRequest').trim();
+    if (!userRequest) {
+      return {
+        ok: false,
+        type: 'task.create.result',
+        requestId: message.requestId,
+        error: {
+          code: 'EMPTY_USER_REQUEST',
+          message: 'Task request is empty.'
+        }
+      };
+    }
+
+    const payload = {
+      userRequest,
+      fields,
+      workspaceRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '',
+      source: 'vscode-webview'
+    };
+
+    try {
+      const serviceResponse = await this.runtimeManager.createTask(payload);
+      const task = this.extractTask(serviceResponse);
+      const taskId = task?.id ?? this.extractTaskId(serviceResponse);
+      if (taskId) {
+        await this.connectTaskEventStream(taskId);
+      }
+      return {
+        ok: true,
+        type: 'task.create.result',
+        requestId: message.requestId,
+        payload: {
+          message: 'Task created',
+          taskId,
+          task,
+          serviceResponse
+        }
+      };
+    } catch (error) {
+      if (error instanceof RuntimeManagerError && error.code === 'RUNTIME_NOT_RUNNING') {
+        return {
+          ok: false,
+          type: 'task.create.result',
+          requestId: message.requestId,
+          error: {
+            code: 'RUNTIME_NOT_RUNNING',
+            message: 'Runtime is not running. Please start Runtime first.'
+          }
+        };
+      }
+
+      return {
+        ok: false,
+        type: 'task.create.result',
+        requestId: message.requestId,
+        error: {
+          code: 'TASK_CREATE_FAILED',
+          message: error instanceof Error ? error.message : String(error)
+        }
+      };
+    }
+  }
+
   private createPlaceholderResponse(message: WebviewMessage): WebviewResponse {
     return {
       ok: true,
@@ -248,6 +331,47 @@ export class MessageDispatcher {
         receivedPayload: message.payload ?? {}
       }
     };
+  }
+
+  private async connectTaskEventStream(taskId: string): Promise<void> {
+    try {
+      await this.runtimeManager.connectTaskEvents(
+        taskId,
+        (event) => {
+          void this.postTaskEvent(event);
+        },
+        (error) => {
+          void this.postTaskEventError(error);
+        }
+      );
+    } catch (error) {
+      await this.postTaskEventError(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
+
+  private async postTaskEvent(event: unknown): Promise<void> {
+    if (!this.postToWebview) {
+      return;
+    }
+    await this.postToWebview({
+      ok: true,
+      type: 'task.event',
+      payload: { event }
+    });
+  }
+
+  private async postTaskEventError(error: Error): Promise<void> {
+    if (!this.postToWebview) {
+      return;
+    }
+    await this.postToWebview({
+      ok: false,
+      type: 'task.event.error',
+      error: {
+        code: 'TASK_EVENT_STREAM_ERROR',
+        message: error.message
+      }
+    });
   }
 
   private async handleSettingsLoad(message: WebviewMessage): Promise<WebviewResponse> {
@@ -543,6 +667,49 @@ export class MessageDispatcher {
       this.getGlobalSafety(message.payload?.fields ?? {})
     );
     return this.createToolsSuccessResponse(message, 'Global safety saved', toolsConfig);
+  }
+
+  private async handleRuntimeAction(
+    message: WebviewMessage,
+    action: () => Promise<RuntimeStatus>,
+    successMessage: string,
+    errorCode: string
+  ): Promise<WebviewResponse> {
+    try {
+      const status = await action();
+      if (!status.running && (message.type === 'runtime.start' || message.type === 'runtime.restart' || message.type === 'runtime.health')) {
+        return {
+          ok: false,
+          type: `${message.type}.result`,
+          requestId: message.requestId,
+          payload: { status },
+          error: {
+            code: errorCode,
+            message: status.message
+          }
+        };
+      }
+
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: {
+          message: successMessage,
+          status
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: {
+          code: errorCode,
+          message: error instanceof Error ? error.message : String(error)
+        }
+      };
+    }
   }
 
   private pickSettingsFields(fields: Record<string, unknown>): Record<string, unknown> {
@@ -941,6 +1108,22 @@ export class MessageDispatcher {
         message: errorMessage
       }
     };
+  }
+
+  private extractTask(response: unknown): { id?: string; status?: string } | undefined {
+    if (!response || typeof response !== 'object') {
+      return undefined;
+    }
+    const task = (response as { task?: unknown }).task;
+    return task && typeof task === 'object' ? task as { id?: string; status?: string } : undefined;
+  }
+
+  private extractTaskId(response: unknown): string | undefined {
+    if (!response || typeof response !== 'object') {
+      return undefined;
+    }
+    const taskId = (response as { taskId?: unknown }).taskId;
+    return typeof taskId === 'string' ? taskId : undefined;
   }
 
   private findAgent(agents: AgentConfig[], id: string): AgentConfig | undefined {

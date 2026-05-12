@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ConfigStore } from '../storage/ConfigStore';
+import { RuntimeManager } from '../runtime/RuntimeManager';
 import { SecretStore } from '../storage/SecretStore';
 import { MessageDispatcher } from './MessageDispatcher';
 import { WebviewHtmlBuilder } from './WebviewHtmlBuilder';
@@ -11,9 +12,17 @@ export class AgentControlPanelProvider implements vscode.WebviewViewProvider {
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly output: vscode.OutputChannel
+    private readonly output: vscode.OutputChannel,
+    runtimeManager?: RuntimeManager
   ) {
-    this.dispatcher = new MessageDispatcher(output, new ConfigStore(context), new SecretStore(context));
+    const configStore = new ConfigStore(context);
+    this.dispatcher = new MessageDispatcher(
+      output,
+      configStore,
+      new SecretStore(context),
+      runtimeManager ?? new RuntimeManager(context, output, configStore),
+      (message) => this.view?.webview.postMessage(message)
+    );
     this.htmlBuilder = new WebviewHtmlBuilder(context.extensionUri, output);
   }
 

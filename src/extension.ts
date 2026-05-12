@@ -1,14 +1,19 @@
 import * as vscode from 'vscode';
+import { ConfigStore } from './storage/ConfigStore';
+import { RuntimeManager } from './runtime/RuntimeManager';
 import { AgentControlPanel } from './webview/AgentControlPanel';
 
 let output: vscode.OutputChannel | undefined;
+let runtimeManager: RuntimeManager | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   output = vscode.window.createOutputChannel('AutoGen Code Agent');
   output.appendLine('[activate] AutoGen Code Agent activation started');
 
   try {
-    const panel = new AgentControlPanel(context, output);
+    const configStore = new ConfigStore(context);
+    runtimeManager = new RuntimeManager(context, output, configStore);
+    const panel = new AgentControlPanel(context, output, runtimeManager);
 
     const openPanelCommand = vscode.commands.registerCommand('autogenAgent.openPanel', () => panel.open());
     const startTaskCommand = vscode.commands.registerCommand('autogenAgent.startTask', async () => {
@@ -25,7 +30,9 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 }
 
-export function deactivate(): void {
+export async function deactivate(): Promise<void> {
+  await runtimeManager?.dispose();
   output?.dispose();
   output = undefined;
+  runtimeManager = undefined;
 }

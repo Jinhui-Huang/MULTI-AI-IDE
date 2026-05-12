@@ -111,7 +111,11 @@
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/vscode": "^1.92.0",
+    "@types/ws": "^8.18.1",
     "@vscode/vsce": "^3.0.0",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "ws": "^8.20.0"
   }
 }

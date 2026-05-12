@@ -569,6 +569,137 @@
     }
   }
 
+  function updateRuntimeStatus(status) {
+    const target = getElement('runtime-status');
+    if (!target || !status || typeof status !== 'object') {
+      return;
+    }
+
+    const lines = [
+      'Runtime status: ' + (status.running ? 'running' : 'stopped'),
+      'Service URL: ' + (status.serviceUrl || 'unknown')
+    ];
+    if (status.pid) {
+      lines.push('PID: ' + status.pid);
+    }
+    if (status.message) {
+      lines.push('Message: ' + status.message);
+    }
+    if (status.health) {
+      lines.push('Health: ' + JSON.stringify(status.health));
+    }
+    target.textContent = lines.join('\n');
+  }
+
+  function handleRuntimeResult(payload) {
+    if (payload && payload.status) {
+      updateRuntimeStatus(payload.status);
+    }
+  }
+
+  function updateCurrentTaskStatus(payload) {
+    const target = getElement('current-task-status');
+    if (!target || !payload) {
+      return;
+    }
+
+    const task = payload.task || {};
+    const taskId = payload.taskId || task.id;
+    if (!taskId) {
+      return;
+    }
+
+    target.textContent = [
+      'Current Task: ' + taskId,
+      'Status: ' + (task.status || 'created')
+    ].join('\n');
+    appendLog('Task created: ' + taskId, 'ok');
+  }
+
+  function setCurrentTaskStatus(taskId, status) {
+    const target = getElement('current-task-status');
+    if (!target || !taskId) {
+      return;
+    }
+
+    target.textContent = [
+      'Current Task: ' + taskId,
+      'Status: ' + (status || 'running')
+    ].join('\n');
+  }
+
+  function updateAgentStatus(agentName, status) {
+    if (!agentName || !status) {
+      return;
+    }
+
+    document.querySelectorAll('[data-panel="run"] .status-row').forEach(function (row) {
+      const name = row.querySelector('span:first-child');
+      const pill = row.querySelector('.pill');
+      if (!name || !pill || name.textContent !== agentName) {
+        return;
+      }
+
+      pill.textContent = status;
+      pill.className = status === 'done' || status === 'completed'
+        ? 'pill green'
+        : (status === 'running' ? 'pill accent' : 'pill');
+    });
+  }
+
+  function describeTaskEvent(event) {
+    const payload = event && event.payload ? event.payload : {};
+    switch (event.type) {
+      case 'task.status':
+        return 'Task status: ' + (payload.status || 'unknown');
+      case 'agent.status':
+        return (payload.agent || 'Agent') + ' -> ' + (payload.status || 'unknown');
+      case 'agent.message':
+        return (payload.agent || 'Agent') + ': ' + (payload.content || '');
+      case 'tool.call':
+        return 'Tool call: ' + (payload.tool || 'unknown');
+      case 'tool.result':
+        return 'Tool result: ' + (payload.tool || 'unknown');
+      case 'patch.proposed':
+        return 'Patch proposed: ' + (payload.patchId || 'placeholder');
+      case 'approval.required':
+        return 'Approval required: ' + (payload.approvalType || 'unknown');
+      case 'task.completed':
+        return 'Task completed';
+      default:
+        return 'event: ' + (event.type || 'unknown');
+    }
+  }
+
+  function handleTaskEvent(event) {
+    if (!event || typeof event !== 'object') {
+      return;
+    }
+
+    const payload = event.payload || {};
+    appendLog('event: ' + (event.type || 'unknown'), 'ok');
+    appendLog(describeTaskEvent(event), '');
+
+    if (event.type === 'task.status') {
+      setCurrentTaskStatus(event.taskId, payload.status || 'running');
+    }
+
+    if (event.type === 'agent.status') {
+      updateAgentStatus(payload.agent, payload.status);
+    }
+
+    if (event.type === 'task.completed') {
+      setCurrentTaskStatus(event.taskId, payload.status || 'completed');
+      setStatus(payload.summary || 'Task completed', 'ok');
+    }
+  }
+
+  function handleTaskEventError(error) {
+    const message = error && error.message ? error.message : 'Unknown task event stream error';
+    appendLog('Task event stream error: ' + message, 'error');
+    setStatus(message, 'error');
+  }
+
   function bindTabs() {
     document.querySelectorAll('[data-tab]').forEach(function (tab) {
       tab.addEventListener('click', function () {
@@ -742,6 +873,22 @@
           handleToolsResult(message.payload || {});
         }
 
+        if (responseType === 'runtime.start.result'
+          || responseType === 'runtime.stop.result'
+          || responseType === 'runtime.restart.result'
+          || responseType === 'runtime.health.result') {
+          handleRuntimeResult(message.payload || {});
+        }
+
+        if (responseType === 'task.create.result') {
+          updateCurrentTaskStatus(message.payload || {});
+        }
+
+        if (responseType === 'task.event') {
+          handleTaskEvent((message.payload || {}).event);
+          return;
+        }
+
         const text = message.payload && message.payload.message
           ? message.payload.message
           : 'Received placeholder response';
@@ -750,6 +897,15 @@
       }
 
       if (message.error && message.error.message) {
+        if (message.payload && message.payload.status) {
+          updateRuntimeStatus(message.payload.status);
+        }
+        if (responseType === 'task.create.result') {
+          appendLog(message.error.message, 'error');
+        }
+        if (responseType === 'task.event.error') {
+          handleTaskEventError(message.error);
+        }
         setStatus(message.error.message, 'error');
       }
     } catch (error) {
