@@ -78,7 +78,6 @@ export class MessageDispatcher {
     'workflow.node.addAgent',
     'workflow.node.addHumanApproval',
     'workflow.node.addCondition',
-    'settings.testModel',
     'settings.import',
     'settings.export',
     'settings.restoreDefault',
@@ -239,6 +238,49 @@ export class MessageDispatcher {
 
     if (message.type === 'runtime.health') {
       return this.handleRuntimeAction(message, () => this.runtimeManager.health(), 'Runtime health checked', 'RUNTIME_HEALTH_FAILED');
+    }
+
+    if (message.type === 'settings.testModel') {
+      return this.handleSettingsTestModel(message);
+    }
+
+    if (message.type === 'agent.debug.runOnce') {
+      return this.handleAgentDebugRunOnce(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'agent.debug.runWithTools') {
+      return this.handleAgentDebugRunWithTools(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'agent.debug.runSequence') {
+      return this.handleAgentDebugRunSequence(message as WebviewMessage<ActionPayload>);
+    }
+
+    if (message.type === 'tool.gateway.health') {
+      return this.handleToolGatewayHealth(message);
+    }
+
+    if (message.type === 'tool.gateway.debugListFiles') {
+      return this.handleToolGatewayCall(message as WebviewMessage<ActionPayload>, 'list_files', {
+        dir: '.',
+        maxFiles: 50
+      });
+    }
+
+    if (message.type === 'tool.gateway.debugReadFile') {
+      const fields = (message as WebviewMessage<ActionPayload>).payload?.fields ?? {};
+      return this.handleToolGatewayCall(message as WebviewMessage<ActionPayload>, 'read_file', {
+        path: this.getStringField(fields, 'tool.debug.path') || 'package.json',
+        maxBytes: 20000
+      });
+    }
+
+    if (message.type === 'tool.gateway.debugSearchCode') {
+      const fields = (message as WebviewMessage<ActionPayload>).payload?.fields ?? {};
+      return this.handleToolGatewayCall(message as WebviewMessage<ActionPayload>, 'search_code', {
+        query: this.getStringField(fields, 'tool.debug.query') || 'function',
+        maxResults: 20
+      });
     }
 
     if (message.type === 'patch.debug.proposePlaceholder') {
@@ -754,6 +796,328 @@ export class MessageDispatcher {
         }
       };
     }
+  }
+
+  private async handleSettingsTestModel(message: WebviewMessage): Promise<WebviewResponse> {
+    try {
+      const result = await this.runtimeManager.modelHealth();
+      const payload = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      if (payload.ok === false) {
+        return {
+          ok: false,
+          type: 'settings.testModel.result',
+          requestId: message.requestId,
+          error: this.toModelHealthError(payload.error)
+        };
+      }
+
+      return {
+        ok: true,
+        type: 'settings.testModel.result',
+        requestId: message.requestId,
+        payload: {
+          message: 'Model health check passed',
+          result
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: 'settings.testModel.result',
+        requestId: message.requestId,
+        error: this.toRuntimeModelError(error)
+      };
+    }
+  }
+
+  private toModelHealthError(error: unknown): { code: string; message: string } {
+    if (error && typeof error === 'object') {
+      const value = error as { code?: unknown; message?: unknown };
+      return {
+        code: typeof value.code === 'string' ? value.code : 'MODEL_HEALTH_FAILED',
+        message: typeof value.message === 'string' ? value.message : 'Model health check failed.'
+      };
+    }
+    return {
+      code: 'MODEL_HEALTH_FAILED',
+      message: 'Model health check failed.'
+    };
+  }
+
+  private toRuntimeModelError(error: unknown): { code: string; message: string } {
+    if (error instanceof RuntimeManagerError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'MODEL_HEALTH_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private async handleAgentDebugRunOnce(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const fields = message.payload?.fields ?? {};
+    const userRequest = this.getStringField(fields, 'task.userRequest').trim()
+      || '用一句话说明你已经成功连接到 Gemini。';
+    const systemPrompt = this.getStringField(fields, 'agent.systemPrompt').trim()
+      || 'You are DebugAssistantAgent. Reply concisely and do not call tools.';
+
+    try {
+      const result = await this.runtimeManager.runAgentOnce({
+        userRequest,
+        systemPrompt
+      });
+      const payload = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      if (payload.ok === false) {
+        return {
+          ok: false,
+          type: 'agent.debug.runOnce.result',
+          requestId: message.requestId,
+          error: this.toAgentRunError(payload.error)
+        };
+      }
+
+      return {
+        ok: true,
+        type: 'agent.debug.runOnce.result',
+        requestId: message.requestId,
+        payload: {
+          message: 'Agent debug run completed',
+          result: payload.result ?? result
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: 'agent.debug.runOnce.result',
+        requestId: message.requestId,
+        error: this.toAgentRunExceptionError(error)
+      };
+    }
+  }
+
+  private async handleAgentDebugRunWithTools(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const fields = message.payload?.fields ?? {};
+    const userRequest = this.getStringField(fields, 'task.userRequest').trim()
+      || '请分析当前 workspace 的项目结构。先调用 list_files 查看根目录，再读取 package.json 或 pom.xml，如果存在的话。最后用中文总结项目类型和主要目录。';
+    const systemPrompt = this.getStringField(fields, 'agent.systemPrompt').trim();
+
+    try {
+      const result = await this.runtimeManager.runAgentWithTools({
+        userRequest,
+        systemPrompt: systemPrompt || undefined
+      });
+      const payload = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      if (payload.ok === false) {
+        return {
+          ok: false,
+          type: 'agent.debug.runWithTools.result',
+          requestId: message.requestId,
+          error: this.toAgentToolRunError(payload.error)
+        };
+      }
+
+      return {
+        ok: true,
+        type: 'agent.debug.runWithTools.result',
+        requestId: message.requestId,
+        payload: {
+          message: 'Agent tool run completed',
+          result: payload.result ?? result
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: 'agent.debug.runWithTools.result',
+        requestId: message.requestId,
+        error: this.toAgentToolRunExceptionError(error)
+      };
+    }
+  }
+
+  private async handleAgentDebugRunSequence(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {
+    const fields = message.payload?.fields ?? {};
+    const userRequest = this.getStringField(fields, 'task.userRequest').trim()
+      || '请分析当前 workspace 的项目结构，并给出如果要增加一个简单登录接口，需要检查哪些文件、可能修改哪些文件、有什么风险。不要修改文件。';
+
+    try {
+      const result = await this.runtimeManager.runAgentSequence({ userRequest });
+      const payload = result && typeof result === 'object' ? result as Record<string, unknown> : {};
+      if (payload.ok === false) {
+        return {
+          ok: false,
+          type: 'agent.debug.runSequence.result',
+          requestId: message.requestId,
+          payload: payload.result ? { result: payload.result } : undefined,
+          error: this.toAgentSequenceError(payload.error)
+        };
+      }
+
+      return {
+        ok: true,
+        type: 'agent.debug.runSequence.result',
+        requestId: message.requestId,
+        payload: {
+          message: 'Agent sequence completed',
+          result: payload.result ?? result
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: 'agent.debug.runSequence.result',
+        requestId: message.requestId,
+        error: this.toAgentSequenceExceptionError(error)
+      };
+    }
+  }
+
+  private toAgentSequenceError(error: unknown): { code: string; message: string } {
+    if (error && typeof error === 'object') {
+      const value = error as { code?: unknown; message?: unknown };
+      return {
+        code: typeof value.code === 'string' ? value.code : 'AUTOGEN_SEQUENCE_FAILED',
+        message: typeof value.message === 'string' ? value.message : 'AutoGen sequence failed.'
+      };
+    }
+    return {
+      code: 'AUTOGEN_SEQUENCE_FAILED',
+      message: 'AutoGen sequence failed.'
+    };
+  }
+
+  private toAgentSequenceExceptionError(error: unknown): { code: string; message: string } {
+    if (error instanceof RuntimeManagerError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'AUTOGEN_SEQUENCE_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private toAgentToolRunError(error: unknown): { code: string; message: string } {
+    if (error && typeof error === 'object') {
+      const value = error as { code?: unknown; message?: unknown };
+      return {
+        code: typeof value.code === 'string' ? value.code : 'AUTOGEN_TOOL_RUN_FAILED',
+        message: typeof value.message === 'string' ? value.message : 'AutoGen tool run failed.'
+      };
+    }
+    return {
+      code: 'AUTOGEN_TOOL_RUN_FAILED',
+      message: 'AutoGen tool run failed.'
+    };
+  }
+
+  private toAgentToolRunExceptionError(error: unknown): { code: string; message: string } {
+    if (error instanceof RuntimeManagerError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'AUTOGEN_TOOL_RUN_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private toAgentRunError(error: unknown): { code: string; message: string } {
+    if (error && typeof error === 'object') {
+      const value = error as { code?: unknown; message?: unknown };
+      return {
+        code: typeof value.code === 'string' ? value.code : 'AUTOGEN_RUN_FAILED',
+        message: typeof value.message === 'string' ? value.message : 'AutoGen run failed.'
+      };
+    }
+    return {
+      code: 'AUTOGEN_RUN_FAILED',
+      message: 'AutoGen run failed.'
+    };
+  }
+
+  private toAgentRunExceptionError(error: unknown): { code: string; message: string } {
+    if (error instanceof RuntimeManagerError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'AUTOGEN_RUN_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  private async handleToolGatewayHealth(message: WebviewMessage): Promise<WebviewResponse> {
+    try {
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: {
+          message: 'Tool gateway health checked',
+          result: await this.runtimeManager.toolHealth()
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: this.toRuntimeToolGatewayError(error)
+      };
+    }
+  }
+
+  private async handleToolGatewayCall(
+    message: WebviewMessage<ActionPayload>,
+    tool: string,
+    args: Record<string, unknown>
+  ): Promise<WebviewResponse> {
+    try {
+      return {
+        ok: true,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        payload: {
+          message: `Tool gateway handled: ${tool}`,
+          tool,
+          result: await this.runtimeManager.callToolViaService({
+            tool,
+            args,
+            requestId: message.requestId
+          })
+        }
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        type: `${message.type}.result`,
+        requestId: message.requestId,
+        error: this.toRuntimeToolGatewayError(error)
+      };
+    }
+  }
+
+  private toRuntimeToolGatewayError(error: unknown): { code: string; message: string } {
+    if (error instanceof RuntimeManagerError) {
+      return {
+        code: error.code,
+        message: error.message
+      };
+    }
+    return {
+      code: 'TOOL_GATEWAY_FAILED',
+      message: error instanceof Error ? error.message : String(error)
+    };
   }
 
   private async handlePatchDebugProposePlaceholder(message: WebviewMessage<ActionPayload>): Promise<WebviewResponse> {

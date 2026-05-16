@@ -3,6 +3,8 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ConfigStore } from '../storage/ConfigStore';
+import { SecretStore } from '../storage/SecretStore';
+import { ToolServer, ToolServerStatus } from '../tools/ToolServer';
 import { ExtensionApiClient } from './ExtensionApiClient';
 import { WebSocketClient } from './WebSocketClient';
 
@@ -12,6 +14,11 @@ export interface RuntimeStatus {
   serviceUrl: string;
   message: string;
   health?: unknown;
+  toolServer?: {
+    running: boolean;
+    url?: string;
+  };
+  model?: SafeModelStatus;
 }
 
 export class RuntimeManagerError extends Error {
@@ -29,6 +36,22 @@ interface RuntimeSettings {
   host: string;
   port: number;
   serviceUrl: string;
+  model: ModelRuntimeSettings;
+}
+
+interface ModelRuntimeSettings {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  fallbackModel: string;
+  logLevel: string;
+}
+
+interface SafeModelStatus {
+  provider: string;
+  baseUrl: string;
+  model: string;
+  apiKeyConfigured: boolean;
 }
 
 export class RuntimeManager {
@@ -36,6 +59,10 @@ export class RuntimeManager {
   private lastSettings?: RuntimeSettings;
   private readonly apiClient: ExtensionApiClient;
   private readonly taskEventsClient = new WebSocketClient();
+  private readonly toolServer: ToolServer;
+  private readonly secretStore: SecretStore;
+  private toolServerStatus?: ToolServerStatus;
+  private modelApiKeyConfigured = false;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -43,6 +70,8 @@ export class RuntimeManager {
     private readonly configStore: ConfigStore
   ) {
     this.apiClient = new ExtensionApiClient(configStore, output);
+    this.toolServer = new ToolServer(context, output, configStore);
+    this.secretStore = new SecretStore(context);
   }
 
   async ensureStarted(): Promise<void> {
@@ -61,7 +90,8 @@ export class RuntimeManager {
         running: true,
         pid: this.proc?.pid,
         serviceUrl: settings.serviceUrl,
-        message: 'Runtime already running'
+        message: 'Runtime already running',
+        toolServer: this.getToolServerStatus()
       };
     }
 
@@ -71,6 +101,10 @@ export class RuntimeManager {
     }
 
     try {
+      this.toolServerStatus = await this.toolServer.start();
+      const toolServerToken = await this.configStore.getSessionToken();
+      const modelApiKey = await this.secretStore.getApiKey();
+      this.modelApiKeyConfigured = typeof modelApiKey === 'string' && modelApiKey.length > 0;
       const proc = spawn(settings.pythonPath, [
         mainPath,
         '--host',
@@ -79,6 +113,18 @@ export class RuntimeManager {
         String(settings.port)
       ], {
         cwd: this.context.extensionPath,
+        env: {
+          ...process.env,
+          AUTOGEN_IDE_TOOL_SERVER_URL: this.toolServerStatus.url,
+          AUTOGEN_IDE_TOOL_SERVER_TOKEN: toolServerToken,
+          AUTOGEN_IDE_MODEL_PROVIDER: settings.model.provider,
+          AUTOGEN_IDE_MODEL_BASE_URL: settings.model.baseUrl,
+          AUTOGEN_IDE_MODEL_NAME: settings.model.model,
+          AUTOGEN_IDE_FALLBACK_MODEL: settings.model.fallbackModel,
+          AUTOGEN_IDE_MODEL_API_KEY: modelApiKey ?? '',
+          AUTOGEN_IDE_LOG_LEVEL: settings.model.logLevel,
+          OPENAI_API_KEY: modelApiKey ?? ''
+        },
         stdio: 'pipe',
         shell: false
       });
@@ -96,6 +142,7 @@ export class RuntimeManager {
       const spawnError = await this.waitForSpawnError(proc);
       if (spawnError) {
         this.proc = undefined;
+        await this.stopToolServer();
         return this.createStatus(false, settings, spawnError);
       }
 
@@ -106,9 +153,11 @@ export class RuntimeManager {
 
       this.proc?.kill();
       this.proc = undefined;
+      await this.stopToolServer();
       return this.createStatus(false, settings, health.message);
     } catch (error) {
       this.proc = undefined;
+      await this.stopToolServer();
       return this.createStatus(false, settings, this.errorMessage(error));
     }
   }
@@ -117,12 +166,14 @@ export class RuntimeManager {
     const settings = this.lastSettings ?? await this.getRuntimeSettings();
     this.disconnectTaskEvents();
     if (!this.proc) {
+      await this.stopToolServer();
       return this.createStatus(false, settings, 'Runtime stopped');
     }
 
     const proc = this.proc;
     this.proc = undefined;
     proc.kill();
+    await this.stopToolServer();
     return this.createStatus(false, settings, 'Runtime stopped');
   }
 
@@ -169,6 +220,62 @@ export class RuntimeManager {
     return this.apiClient.getTask(serviceUrl, taskId);
   }
 
+  async toolHealth(): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.toolHealth(serviceUrl);
+  }
+
+  async callToolViaService(payload: unknown): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.callToolViaService(serviceUrl, payload);
+  }
+
+  async getModelConfigSafe(): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.getModelConfigSafe(serviceUrl);
+  }
+
+  async modelHealth(): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.modelHealth(serviceUrl);
+  }
+
+  async runAgentOnce(payload: unknown): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.runAgentOnce(serviceUrl, payload);
+  }
+
+  async runAgentWithTools(payload: unknown): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.runAgentWithTools(serviceUrl, payload);
+  }
+
+  async runAgentSequence(payload: unknown): Promise<unknown> {
+    const serviceUrl = await this.getServiceUrl();
+    if (!await this.canReachRuntime(serviceUrl)) {
+      throw new RuntimeManagerError('RUNTIME_NOT_RUNNING', 'Runtime is not running. Please start Runtime first.');
+    }
+    return this.apiClient.runAgentSequence(serviceUrl, payload);
+  }
+
   async connectTaskEvents(taskId: string, onEvent: (event: unknown) => void, onError?: (error: Error) => void): Promise<void> {
     const serviceUrl = await this.getServiceUrl();
     if (!await this.canReachRuntime(serviceUrl)) {
@@ -195,7 +302,14 @@ export class RuntimeManager {
       pythonPath: this.getString(settings, 'settings.pythonPath', 'python') || 'python',
       host,
       port,
-      serviceUrl: this.getString(settings, 'settings.serviceUrl', defaultServiceUrl) || defaultServiceUrl
+      serviceUrl: this.getString(settings, 'settings.serviceUrl', defaultServiceUrl) || defaultServiceUrl,
+      model: {
+        provider: this.getString(settings, 'settings.provider', 'openai_compatible') || 'openai_compatible',
+        baseUrl: this.getString(settings, 'settings.baseUrl', 'https://generativelanguage.googleapis.com/v1beta/openai/'),
+        model: this.getString(settings, 'settings.model', 'gemini-3-flash-preview') || 'gemini-3-flash-preview',
+        fallbackModel: this.getString(settings, 'settings.fallbackModel', 'gemini-3-flash-preview') || 'gemini-3-flash-preview',
+        logLevel: this.getString(settings, 'settings.logLevel', 'info') || 'info'
+      }
     };
   }
 
@@ -252,7 +366,30 @@ export class RuntimeManager {
       pid: running ? this.proc?.pid : undefined,
       serviceUrl: settings.serviceUrl,
       message,
-      health
+      health,
+      toolServer: this.getToolServerStatus(),
+      model: this.getSafeModelStatus(settings.model)
+    };
+  }
+
+  private getToolServerStatus(): RuntimeStatus['toolServer'] {
+    return {
+      running: this.toolServer.isRunning(),
+      url: this.toolServer.getUrl() ?? this.toolServerStatus?.url
+    };
+  }
+
+  private async stopToolServer(): Promise<void> {
+    await this.toolServer.stop();
+    this.toolServerStatus = undefined;
+  }
+
+  private getSafeModelStatus(model: ModelRuntimeSettings): SafeModelStatus {
+    return {
+      provider: model.provider,
+      baseUrl: model.baseUrl,
+      model: model.model,
+      apiKeyConfigured: this.modelApiKeyConfigured
     };
   }
 

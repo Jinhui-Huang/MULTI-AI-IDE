@@ -23,6 +23,34 @@ export class ExtensionApiClient {
     return this.request('GET', `${serviceUrl.replace(/\/$/, '')}/api/tasks/${encodeURIComponent(taskId)}`, undefined, 5000);
   }
 
+  async toolHealth(serviceUrl: string): Promise<unknown> {
+    return this.request('GET', `${serviceUrl.replace(/\/$/, '')}/api/tools/health`, undefined, 5000);
+  }
+
+  async callToolViaService(serviceUrl: string, payload: unknown): Promise<unknown> {
+    return this.request('POST', `${serviceUrl.replace(/\/$/, '')}/api/tools/call`, payload, 5000);
+  }
+
+  async getModelConfigSafe(serviceUrl: string): Promise<unknown> {
+    return this.request('GET', `${serviceUrl.replace(/\/$/, '')}/api/model/config-safe`, undefined, 5000);
+  }
+
+  async modelHealth(serviceUrl: string): Promise<unknown> {
+    return this.request('POST', `${serviceUrl.replace(/\/$/, '')}/api/model/health`, { message: 'ping' }, 20000);
+  }
+
+  async runAgentOnce(serviceUrl: string, payload: unknown): Promise<unknown> {
+    return this.request('POST', `${serviceUrl.replace(/\/$/, '')}/api/agent/run-once`, payload, 60000);
+  }
+
+  async runAgentWithTools(serviceUrl: string, payload: unknown): Promise<unknown> {
+    return this.request('POST', `${serviceUrl.replace(/\/$/, '')}/api/agent/run-with-tools`, payload, 120000);
+  }
+
+  async runAgentSequence(serviceUrl: string, payload: unknown): Promise<unknown> {
+    return this.request('POST', `${serviceUrl.replace(/\/$/, '')}/api/agent/run-sequence`, payload, 180000);
+  }
+
   async get(path: string): Promise<unknown> {
     return this.request('GET', this.toUrl(path));
   }

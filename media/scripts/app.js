@@ -77,6 +77,9 @@
       }
 
       if ('value' in field) {
+        if (fields[name] && !field.value) {
+          return;
+        }
         fields[name] = field.value;
       }
     });
@@ -144,7 +147,8 @@
 
     const clone = {};
     Object.keys(value).forEach(function (key) {
-      if (key === 'settings.apiKey' || key === 'apiKey') {
+      const lowerKey = key.toLowerCase();
+      if (key === 'settings.apiKey' || key === 'apiKey' || lowerKey.includes('authorization') || lowerKey.includes('api_key')) {
         clone[key] = '***';
         return;
       }
@@ -609,6 +613,115 @@
     }
   }
 
+  function updateModelStatus(status, modelName, detail) {
+    const target = getElement('model-status');
+    if (!target) {
+      return;
+    }
+
+    const lines = [
+      'Model status: ' + status
+    ];
+    if (modelName) {
+      lines.push('Model: ' + modelName);
+    }
+    if (detail) {
+      lines.push(detail);
+    }
+    target.textContent = lines.join('\n');
+  }
+
+  function handleModelHealthResult(payload) {
+    const result = payload && payload.result ? payload.result : {};
+    const modelName = result.model || 'unknown';
+    updateModelStatus('OK', modelName, result.responsePreview ? 'Response: ' + result.responsePreview : '');
+    appendLog('Model health check passed: ' + modelName, 'ok');
+  }
+
+  function handleModelHealthError(error) {
+    const code = error && error.code ? error.code : 'MODEL_HEALTH_FAILED';
+    const message = error && error.message ? error.message : 'Model health check failed.';
+    updateModelStatus('Failed', '', code + ' - ' + message);
+    appendLog('Model health check failed: ' + code + ' - ' + message, 'error');
+  }
+
+  function handleAgentDebugRunOnceResult(payload) {
+    const result = payload && payload.result ? payload.result : {};
+    const agentName = result.agent || 'DebugAssistantAgent';
+    const modelName = result.model || 'unknown';
+    const content = result.content || '';
+    appendLog(agentName + ' | model: ' + modelName, 'ok');
+    if (content) {
+      appendLog(truncateForDisplay(content, 3000), '');
+    }
+    setStatus('Agent debug run completed', 'ok');
+  }
+
+  function handleAgentDebugRunOnceError(error) {
+    const code = error && error.code ? error.code : 'AUTOGEN_RUN_FAILED';
+    const message = error && error.message ? error.message : 'AutoGen run failed.';
+    appendLog('Agent debug run failed: ' + code + ' - ' + message, 'error');
+    setStatus(message, 'error');
+  }
+
+  function handleAgentDebugRunWithToolsResult(payload) {
+    const result = payload && payload.result ? payload.result : {};
+    const agentName = result.agent || 'ToolEnabledAssistantAgent';
+    const modelName = result.model || 'unknown';
+    const tools = Array.isArray(result.tools) ? result.tools.join(', ') : '';
+    const content = result.content || '';
+    appendLog(agentName + ' | model: ' + modelName, 'ok');
+    if (tools) {
+      appendLog('tools: ' + tools, 'ok');
+    }
+    if (content) {
+      appendLog(truncateForDisplay(content, 5000), '');
+    }
+    setStatus('Agent tool run completed', 'ok');
+  }
+
+  function handleAgentDebugRunWithToolsError(error) {
+    const code = error && error.code ? error.code : 'AUTOGEN_TOOL_RUN_FAILED';
+    const message = error && error.message ? error.message : 'AutoGen tool run failed.';
+    appendLog('Agent tool run failed: ' + code + ' - ' + message, 'error');
+    setStatus(message, 'error');
+  }
+
+  function handleAgentDebugRunSequenceResult(payload) {
+    const result = payload && payload.result ? payload.result : {};
+    const items = Array.isArray(result.results) ? result.results : [];
+    appendLog('Agent sequence completed | model: ' + (result.model || 'unknown'), 'ok');
+    items.forEach(function (item) {
+      const agentName = item && item.agent ? item.agent : 'Agent';
+      const content = item && item.content ? item.content : '';
+      appendLog(agentName + ':', 'ok');
+      if (content) {
+        appendLog(truncateForDisplay(content, 3000), '');
+      }
+    });
+    if (result.summary) {
+      appendLog('SummaryAgent summary:\n' + truncateForDisplay(result.summary, 3000), 'ok');
+    }
+    setStatus('Agent sequence completed', 'ok');
+  }
+
+  function handleAgentDebugRunSequenceError(error, payload) {
+    const code = error && error.code ? error.code : 'AUTOGEN_SEQUENCE_FAILED';
+    const message = error && error.message ? error.message : 'AutoGen sequence failed.';
+    appendLog('Agent sequence failed: ' + code + ' - ' + message, 'error');
+    const result = payload && payload.result ? payload.result : {};
+    const items = Array.isArray(result.results) ? result.results : [];
+    items.forEach(function (item) {
+      const agentName = item && item.agent ? item.agent : 'Agent';
+      const content = item && item.content ? item.content : '';
+      appendLog(agentName + ' partial result:', 'ok');
+      if (content) {
+        appendLog(truncateForDisplay(content, 3000), '');
+      }
+    });
+    setStatus(message, 'error');
+  }
+
   function updateCurrentTaskStatus(payload) {
     const target = getElement('current-task-status');
     if (!target || !payload) {
@@ -797,6 +910,55 @@
     }
   }
 
+  function handleToolGatewayResult(responseType, payload) {
+    const result = payload && payload.result ? payload.result : undefined;
+    if (!result) {
+      return;
+    }
+
+    if (responseType === 'tool.gateway.health.result') {
+      appendLog('tool gateway health: ' + (result.ok === true ? 'ok' : 'failed'), result.ok === true ? 'ok' : 'error');
+      appendLog(JSON.stringify(result, null, 2), result.ok === true ? '' : 'error');
+      return;
+    }
+
+    const toolName = payload.tool || result.tool || 'unknown';
+    appendLog('tool gateway: ' + toolName + ' | ok: ' + (result.ok === true), result.ok === true ? 'ok' : 'error');
+    if (result.error) {
+      appendLog('error: ' + JSON.stringify(result.error), 'error');
+      return;
+    }
+
+    const toolResult = result.result || {};
+    if (toolName === 'list_files') {
+      const files = Array.isArray(toolResult.files) ? toolResult.files : [];
+      appendLog('files: ' + files.length, 'ok');
+      files.slice(0, 20).forEach(function (file) {
+        appendLog((file.type || 'file') + ': ' + (file.path || ''), '');
+      });
+      return;
+    }
+
+    if (toolName === 'read_file') {
+      appendLog('read_file: ' + (toolResult.path || ''), 'ok');
+      if (toolResult.content) {
+        appendLog('content:\n' + truncateForDisplay(toolResult.content, 1000), '');
+      }
+      return;
+    }
+
+    if (toolName === 'search_code') {
+      const results = Array.isArray(toolResult.results) ? toolResult.results : [];
+      appendLog('search results: ' + results.length, 'ok');
+      results.slice(0, 20).forEach(function (item) {
+        appendLog((item.path || '') + ':' + (item.line || '') + ' ' + (item.text || ''), '');
+      });
+      return;
+    }
+
+    appendLog(JSON.stringify(result, null, 2), '');
+  }
+
   function bindTabs() {
     document.querySelectorAll('[data-tab]').forEach(function (tab) {
       tab.addEventListener('click', function () {
@@ -933,6 +1095,22 @@
           setApiKeyStatus(payload.apiKeySaved === true);
         }
 
+        if (responseType === 'settings.testModel.result') {
+          handleModelHealthResult(message.payload || {});
+        }
+
+        if (responseType === 'agent.debug.runOnce.result') {
+          handleAgentDebugRunOnceResult(message.payload || {});
+        }
+
+        if (responseType === 'agent.debug.runWithTools.result') {
+          handleAgentDebugRunWithToolsResult(message.payload || {});
+        }
+
+        if (responseType === 'agent.debug.runSequence.result') {
+          handleAgentDebugRunSequenceResult(message.payload || {});
+        }
+
         if (responseType === 'agents.load.result'
           || responseType === 'agent.save.result'
           || responseType === 'agent.create.result'
@@ -1005,6 +1183,13 @@
           handleGitResult(responseType, message.payload || {});
         }
 
+        if (responseType === 'tool.gateway.health.result'
+          || responseType === 'tool.gateway.debugListFiles.result'
+          || responseType === 'tool.gateway.debugReadFile.result'
+          || responseType === 'tool.gateway.debugSearchCode.result') {
+          handleToolGatewayResult(responseType, message.payload || {});
+        }
+
         const text = message.payload && message.payload.message
           ? message.payload.message
           : 'Received placeholder response';
@@ -1015,6 +1200,18 @@
       if (message.error && message.error.message) {
         if (message.payload && message.payload.status) {
           updateRuntimeStatus(message.payload.status);
+        }
+        if (responseType === 'settings.testModel.result') {
+          handleModelHealthError(message.error);
+        }
+        if (responseType === 'agent.debug.runOnce.result') {
+          handleAgentDebugRunOnceError(message.error);
+        }
+        if (responseType === 'agent.debug.runWithTools.result') {
+          handleAgentDebugRunWithToolsError(message.error);
+        }
+        if (responseType === 'agent.debug.runSequence.result') {
+          handleAgentDebugRunSequenceError(message.error, message.payload || {});
         }
         if (responseType === 'task.create.result') {
           appendLog(message.error.message, 'error');

@@ -11,8 +11,12 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from api.agent import router as agent_router
+from api.model import router as model_router
 from runtime.task_manager import TaskManager
 from runtime.ws_manager import WsManager
+from schemas.tool import ToolGatewayCallRequest
+from tools.tool_gateway import ToolGateway
 
 
 VERSION = "0.1.0"
@@ -36,6 +40,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="AutoGen Agent Service Placeholder", version=VERSION)
     task_manager = TaskManager()
     ws_manager = WsManager()
+    tool_gateway = ToolGateway()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -43,6 +48,8 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.include_router(model_router)
+    app.include_router(agent_router)
 
     @app.get("/")
     async def root() -> dict:
@@ -63,6 +70,18 @@ def create_app() -> FastAPI:
             "python": sys.executable,
             "time": datetime.now(timezone.utc).isoformat(),
         }
+
+    @app.get("/api/tools/health")
+    async def tools_health() -> dict:
+        return await tool_gateway.health()
+
+    @app.post("/api/tools/call")
+    async def call_tool(request: ToolGatewayCallRequest) -> dict:
+        return await tool_gateway.call_tool(
+            tool=request.tool,
+            args=request.args,
+            request_id=request.requestId,
+        )
 
     @app.post("/api/tasks")
     async def create_task(request: TaskCreateRequest) -> dict:

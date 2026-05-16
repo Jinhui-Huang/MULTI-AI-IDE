@@ -3,9 +3,16 @@ import * as vscode from 'vscode';
 import { ConfigStore } from '../storage/ConfigStore';
 import { ToolRouter } from './ToolRouter';
 
+export interface ToolServerStatus {
+  host: string;
+  port: number;
+  url: string;
+}
+
 export class ToolServer {
   private server?: http.Server;
   private port?: number;
+  private readonly host = '127.0.0.1';
   private readonly router: ToolRouter;
 
   constructor(
@@ -16,25 +23,42 @@ export class ToolServer {
     this.router = new ToolRouter(context, output, config);
   }
 
-  async start(port = 18765): Promise<number> {
+  async start(port = 18765): Promise<ToolServerStatus> {
     if (this.server && this.port) {
-      return this.port;
+      return this.createStatus(this.port);
     }
 
     const token = await new ConfigStore(this.context).getSessionToken();
     this.server = http.createServer((request, response) => {
       void this.handleRequest(request, response, token);
     });
-    await new Promise<void>((resolve) => {
-      this.server!.listen(port, '127.0.0.1', () => resolve());
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const server = this.server!;
+        const onError = (error: Error): void => {
+          server.off('listening', onListening);
+          reject(error);
+        };
+        const onListening = (): void => {
+          server.off('error', onError);
+          resolve();
+        };
+        server.once('error', onError);
+        server.once('listening', onListening);
+        server.listen(port, this.host);
+      });
+    } catch (error) {
+      this.server = undefined;
+      this.port = undefined;
+      throw error;
+    }
     const address = this.server.address();
     if (!address || typeof address === 'string') {
       throw new Error('Tool server did not return a TCP address');
     }
     this.port = address.port;
-    this.output.appendLine(`[tool-server] listening on 127.0.0.1:${this.port}`);
-    return this.port;
+    this.output.appendLine(`[tool-server] listening on ${this.host}:${this.port}`);
+    return this.createStatus(this.port);
   }
 
   async stop(): Promise<void> {
@@ -46,6 +70,14 @@ export class ToolServer {
     this.port = undefined;
   }
 
+  isRunning(): boolean {
+    return this.server !== undefined && this.port !== undefined;
+  }
+
+  getUrl(): string | undefined {
+    return this.port ? this.createStatus(this.port).url : undefined;
+  }
+
   dispose(): void {
     void this.stop();
   }
@@ -55,8 +87,18 @@ export class ToolServer {
     response: http.ServerResponse,
     token: string
   ): Promise<void> {
-    if (request.headers['x-agent-session'] !== token) {
-      this.writeJson(response, 401, { ok: false, error: { code: 'UNAUTHORIZED', message: 'Invalid session token' } });
+    if ((request.url ?? '').split('?')[0] !== '/tools/call') {
+      if ((request.url ?? '').split('?')[0] === '/health' && request.method === 'GET') {
+        this.writeJson(response, 200, {
+          ok: true,
+          service: 'vscode-tool-server',
+          status: 'running',
+          url: this.getUrl()
+        });
+        return;
+      }
+
+      this.writeJson(response, 404, { ok: false, error: { code: 'NOT_FOUND', message: 'Unknown tool endpoint' } });
       return;
     }
 
@@ -65,8 +107,8 @@ export class ToolServer {
       return;
     }
 
-    if ((request.url ?? '').split('?')[0] !== '/tools/call') {
-      this.writeJson(response, 404, { ok: false, error: { code: 'NOT_FOUND', message: 'Unknown tool endpoint' } });
+    if (request.headers['x-agent-session'] !== token) {
+      this.writeJson(response, 401, { ok: false, error: { code: 'UNAUTHORIZED', message: 'Invalid session token' } });
       return;
     }
 
@@ -104,5 +146,13 @@ export class ToolServer {
   private writeJson(response: http.ServerResponse, statusCode: number, payload: unknown): void {
     response.writeHead(statusCode, { 'Content-Type': 'application/json' });
     response.end(JSON.stringify(payload));
+  }
+
+  private createStatus(port: number): ToolServerStatus {
+    return {
+      host: this.host,
+      port,
+      url: `http://${this.host}:${port}`
+    };
   }
 }
